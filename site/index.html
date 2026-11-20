@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Bussola Parlamentare</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,500;6..72,650&display=swap" rel="stylesheet">
 <style>
+/* Caratteri ospitati sul sito (licenza SIL OFL, file in font/): nessuna richiesta a server esterni */
+@font-face { font-family: "IBM Plex Sans"; src: url("font/plex-sans.woff") format("woff"); font-weight: 400 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "Newsreader"; src: url("font/newsreader.woff") format("woff"); font-weight: 500 650; font-style: normal; font-display: swap; }
 /* Bussola Parlamentare. Layout: barra superiore con navigazione a schede; ogni sezione = riepilogo in alto, dettaglio sotto. Colori dati: coalizioni (blu/arancio/grigio), voti come il tabellone d'Aula (verde Sì, rosso No, giallo astenuti). */
 :root {
   color-scheme: light;
@@ -484,7 +484,7 @@ tr.click:hover td, tr.click.sel td { background: var(--accent-soft); }
     <div class="card prose" id="metodo"></div>
   </section>
 
-  <p class="footer">Bussola Parlamentare · dati di Camera dei deputati (CC BY-SA 4.0) e Senato della Repubblica (CC BY 3.0), aggiornati ogni giorno. Nessuna valutazione politica: i dati sono riportati come pubblicati dalle istituzioni.</p>
+  <p class="footer">Bussola Parlamentare · progetto indipendente · dati di Camera dei deputati (CC BY-SA 4.0) e Senato della Repubblica (CC BY 3.0), aggiornati ogni giorno; dati elaborati in licenza CC BY-SA 4.0. Nessuna valutazione politica: i dati sono riportati come pubblicati dalle istituzioni. <a href="#metodo">Note legali e privacy</a> · <a href="https://github.com/riccardolucifora07-web/bussola-parlamentare/issues" target="_blank" rel="noopener">Segnala un errore</a></p>
 </main>
 <div id="tip" role="tooltip"></div>
 
@@ -1593,7 +1593,7 @@ function renderParlTable() {
       <td><b>${esc(m.cognome)}</b> ${esc(m.nome)}${m.attivo ? "" : ` <span class="src">${m.fine ? "cessato il " + fmtDate(m.fine) : "non in carica"}</span>`}</td>
       <td>${RAMI[m.ramo].breve}</td>
       <td title="${esc(gn(D[m.ramo], m.g))}">${m.g ? esc(gl(D[m.ramo], m.g)) : '<span class="nd">—</span>'}</td>
-      <td class="n">${bar(m.pres)}</td><td class="n">${bar(m.mis, true)}</td>
+      <td class="n">${bar(m.pres)}</td><td class="n">${m.ramo === "camera" ? '<span class="nd" title="La Camera non distingue le missioni nei dati aperti: sono contate tra le assenze">n.d.</span>' : bar(m.mis, true)}</td>
       <td class="n">${m.dis == null ? '<span class="nd">n.d.</span>' : `${pct(m.dis)} <span class="src">(${m.st.dis})</span>`}</td>
       <td class="n">${m.cambi || ""}</td></tr>`).join("")}</tbody>`;
   if (!righe.length) $("#parl-table").innerHTML += `<tbody><tr><td colspan="7" class="empty">Nessun parlamentare corrisponde ai filtri.</td></tr></tbody>`;
@@ -1622,8 +1622,10 @@ async function renderParlDet() {
     <p class="note" style="margin:6px 0 12px">${RAMI[ramo].nome} · ${m.attivo ? "in carica" : (m.fine ? "cessato dal mandato il " + fmtDate(m.fine) : "non in carica")}${m.tipo && /vita/i.test(m.tipo) ? " · senatore a vita" : ""}${capo ? " · " + capo : ""} · <a href="${esc(m.id)}" target="_blank" rel="noopener">scheda ufficiale</a></p>
     <div class="gov-metrics">
       <div class="gm"><span>Presenze</span><b>${pct(m.pres)}</b><small>${st.pres.toLocaleString("it-IT")} votazioni su ${st.tot.toLocaleString("it-IT")}</small></div>
-      <div class="gm"><span>In missione</span><b>${pct(m.mis)}</b><small>${st.mis.toLocaleString("it-IT")} votazioni, assenze giustificate</small></div>
-      <div class="gm"><span>Assenze</span><b>${pct(st.tot ? st.ass / st.tot : null)}</b><small>${st.ass.toLocaleString("it-IT")} votazioni</small></div>
+      ${ramo === "camera"
+        ? `<div class="gm"><span>Assenze, comprese le missioni</span><b>${pct(st.tot ? st.ass / st.tot : null)}</b><small>${st.ass.toLocaleString("it-IT")} votazioni · la Camera non distingue le missioni nei dati aperti</small></div>`
+        : `<div class="gm"><span>In missione</span><b>${pct(m.mis)}</b><small>${st.mis.toLocaleString("it-IT")} votazioni, assenze giustificate</small></div>
+      <div class="gm"><span>Assenze</span><b>${pct(st.tot ? st.ass / st.tot : null)}</b><small>${st.ass.toLocaleString("it-IT")} votazioni</small></div>`}
       <div class="gm"><span>Voti diversi dal gruppo</span><b>${pct(m.dis)}</b><small>${st.dis.toLocaleString("it-IT")} su ${st.cmp.toLocaleString("it-IT")} voti confrontabili</small></div>
     </div>
     <h3 style="font-size:16px;margin:16px 0 6px">Gruppi</h3>
@@ -1702,7 +1704,7 @@ function renderMetodo() {
     <ul>
       <li><b>Posizione di un gruppo</b> in una votazione: l'opzione (Sì, No, astensione) scelta dal maggior numero dei suoi membri che hanno votato; "diviso" in caso di parità. È ricavata dai voti reali, non dall'indicazione ufficiale del gruppo, che non è un dato pubblicato.</li>
       <li><b>Compattezza</b>: in media, quota dei votanti del gruppo che hanno seguito la posizione del gruppo. Considera le votazioni in cui hanno votato almeno due membri.</li>
-      <li><b>Partecipazione e presenze</b>: quota delle votazioni in cui il parlamentare, mentre era in carica, era presente (ha votato o era presente senza votare). Le missioni, cioè le assenze giustificate per incarichi istituzionali, sono contate a parte: per questo ministri e sottosegretari hanno spesso presenze basse e missioni alte.</li>
+      <li><b>Partecipazione e presenze</b>: quota delle votazioni in cui il parlamentare, mentre era in carica, era presente (ha votato o era presente senza votare). Al Senato le missioni, cioè le assenze giustificate per incarichi istituzionali, sono contate a parte. La Camera invece nei dati aperti non le distingue dalle assenze: per i deputati, e soprattutto per ministri e sottosegretari, le presenze qui possono quindi risultare più basse di quelle delle statistiche ufficiali della Camera, che contano le missioni come presenze.</li>
       <li><b>Voti diversi dal gruppo</b>: votazioni palesi in cui il parlamentare ha votato in modo diverso dalla posizione del suo gruppo in quel momento. Non si calcola per il Misto, che non ha una linea comune.</li>
       <li><b>Maggioranza e opposizione</b>: si calcolano da sole dai voti di fiducia al governo in carica. Un gruppo che nelle sue ultime 15 fiducie ha votato Sì almeno 7 volte su 10 è di maggioranza, No almeno 7 volte su 10 di opposizione, altrimenti è tra "Misto e altri". Il Misto, che non ha una linea comune, resta sempre tra "Misto e altri". Se cambia governo o un partito cambia campo, la collocazione si aggiorna con le fiducie successive. Il governo in carica arriva dai dati della Camera.</li>
       <li><b>Vota come la maggioranza</b>: quota delle votazioni palesi in cui la posizione del gruppo coincide con quella prevalente tra i membri dei gruppi di maggioranza.</li>
@@ -1717,6 +1719,15 @@ function renderMetodo() {
       <li>Se un'istituzione corregge un dato già pubblicato, la correzione arriva nel sito al primo aggiornamento successivo.</li>
       <li><b>Nessun giudizio</b>: l'app non assegna etichette ideologiche e non dà voti ai partiti. Mostra cosa hanno votato e cosa dicono i dati ufficiali.</li>
       <li><b>Anni dei governi</b>: ogni anno solare va al governo in carica per più giorni in quell'anno; i dati economici descrivono cosa è successo durante un governo, non ne misurano il merito.</li>
+    </ul>
+    <h3>Note legali e privacy</h3>
+    <ul>
+      <li><b>Licenze delle fonti</b>: Camera dei deputati CC BY-SA 4.0; Senato della Repubblica CC BY 3.0; ISTAT e OCSE CC BY 4.0. Le fonti sono citate in ogni sezione.</li>
+      <li><b>Dati elaborati</b>: posizioni dei gruppi, indicatori e archivio dei voti sono scaricabili nella cartella <a href="data/LICENZA.md">data/</a> con licenza <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.it" target="_blank" rel="noopener">CC BY-SA 4.0</a>, come richiesto dalla licenza della Camera.</li>
+      <li><b>Dati personali</b>: il sito riporta soltanto l'attività istituzionale dei parlamentari (gruppo, incarichi, voti, presenze) così come pubblicata da Camera e Senato, per finalità di informazione e trasparenza sull'attività parlamentare. Nessun dato viene inferito sulla vita privata.</li>
+      <li><b>Visitatori</b>: il sito non usa cookie, non ha statistiche di visita né pubblicità e non carica risorse da server di terzi; anche i caratteri tipografici sono ospitati sul sito. Il servizio di hosting registra, come ogni server, i dati tecnici delle richieste.</li>
+      <li><b>Errori e rettifiche</b>: chi trova un dato sbagliato può <a href="https://github.com/riccardolucifora07-web/bussola-parlamentare/issues" target="_blank" rel="noopener">segnalarlo qui</a>; le correzioni delle istituzioni arrivano da sole al primo aggiornamento.</li>
+      <li>La Bussola Parlamentare è un progetto indipendente, senza legami con Camera, Senato, governo o partiti.</li>
     </ul>`;
 }
 

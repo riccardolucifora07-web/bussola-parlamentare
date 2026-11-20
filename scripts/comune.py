@@ -43,11 +43,20 @@ def date_in_testo(s):
 _PARTICELLE = {"de", "di", "da", "del", "della", "dei", "degli", "dello", "la", "lo", "le", "van", "von"}
 
 
+_ACCENTI = {"a": "à", "e": "è", "i": "ì", "o": "ò", "u": "ù", "A": "À", "E": "È", "I": "Ì", "O": "Ò", "U": "Ù"}
+_RE_ACCENTO = re.compile(r"(?<=\w)([aeiouAEIOU])'(?=$|[\s,;.)\-])")
+
+
+def accenti(s):
+    """Le banche dati scrivono spesso gli accenti finali con l'apostrofo: "GERMANA'" -> "GERMANÀ"."""
+    return _RE_ACCENTO.sub(lambda m: _ACCENTI[m.group(1)], s or "")
+
+
 def nome_proprio(s):
-    """'D'ALESSIO' -> "D'Alessio"; lascia invariati i nomi già in maiuscolo/minuscolo misto."""
+    """'D'ALESSIO' -> "D'Alessio", "Germana'" -> "Germanà"; i nomi già in maiuscolo/minuscolo misto restano così."""
     if not s:
         return ""
-    s = " ".join(str(s).split())
+    s = accenti(" ".join(str(s).split()))
     if s != s.upper():
         return s
     parti = []
@@ -182,7 +191,7 @@ def pulisci_testo(s):
         if nuovo == s:
             break
         s = nuovo
-    return " ".join(s.split())
+    return accenti(" ".join(s.split()))
 
 
 # ---------- codici dei voti individuali ----------
