@@ -26,6 +26,9 @@ PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 """
 
+LIMITE_RIGHE = 10000      # righe massime per risposta (Camera e Senato)
+LIMITE_ORDINATE = 10000   # OFFSET + LIMIT massimi con ORDER BY
+
 INTERI = ("integer", "int", "long", "short", "nonNegativeInteger", "positiveInteger",
           "unsignedInt", "unsignedLong", "byte")
 
@@ -121,13 +124,17 @@ class Endpoint:
         raise ErroreSparql(f"{self.nome}: troppi errori ({ultimo})")
 
     def query_tutto(self, q, ordina):
-        """Esegue `q` a pagine (ORDER BY `ordina` LIMIT/OFFSET) fino a una pagina vuota."""
+        """Esegue `q` a pagine (ORDER BY `ordina` LIMIT/OFFSET) fino a una pagina vuota.
+        Virtuoso ordina al massimo LIMITE_ORDINATE righe (OFFSET + LIMIT): oltre serve query_lotti."""
         tutte = []
         offset = 0
         pagina = self.pagina
         while True:
+            n = min(pagina, LIMITE_ORDINATE - offset)
+            if n <= 0:
+                raise ErroreSparql(f"{self.nome}: più di {LIMITE_ORDINATE} righe, la query va divisa in lotti")
             try:
-                righe = self.query(f"{q}\nORDER BY {ordina}\nLIMIT {pagina} OFFSET {offset}")
+                righe = self.query(f"{q}\nORDER BY {ordina}\nLIMIT {n} OFFSET {offset}")
             except ErroreSparql:
                 if pagina <= 500:
                     raise
@@ -139,3 +146,24 @@ class Endpoint:
             tutte.extend(righe)
             offset += len(righe)
         return tutte
+
+    def query_lotti(self, modello, uris, lotto, separatore=" "):
+        """Esegue `modello` sostituendo %VALORI% con gruppi di URI (VALUES o FILTER IN).
+        Se una risposta sembra tagliata dal limite di righe dell'endpoint, rifà il lotto più piccolo."""
+        uris = list(uris)
+        out = []
+        i = 0
+        while i < len(uris):
+            parte = uris[i:i + lotto]
+            valori = separatore.join(f"<{u}>" for u in parte)
+            righe = self.query(modello.replace("%VALORI%", valori))
+            n = len(righe)
+            tagliata = n >= LIMITE_RIGHE or (n >= 1000 and n % 1000 == 0)
+            if tagliata and len(parte) > 1:
+                lotto = max(1, len(parte) // 2)
+                continue
+            if tagliata:
+                self.log(f"  [{self.nome}] attenzione: {n} righe per un solo elemento, la risposta potrebbe essere incompleta")
+            out.extend(righe)
+            i += len(parte)
+        return out

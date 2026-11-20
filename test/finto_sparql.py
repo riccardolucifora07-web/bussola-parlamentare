@@ -176,8 +176,15 @@ def risposta(nome, q):
                  {"d": U(D_["dep"][1]["uri"]), "i": U("x_inc2"), "g": U(f"{OCD}gruppoParlamentare.rdf/gr1"), "p": U(DC + "title"), "o": L("VICEPRESIDENTE")}]
     elif nome == "camera_giorni":
         righe = [{"data": L(g)} for g in sorted({v["d"] for v in D_["cvot"]})]
+    elif nome == "camera_lista":
+        righe = [{"v": U(v["uri"])} for v in D_["cvot"] if v["d"] == giorno]
+    elif nome == "senato_lista":
+        sed = seduta.rsplit("/", 1)[1]
+        righe = [{"v": U(v["uri"])} for v in D_["svot"] if v["sed"] == sed]
     elif nome == "camera_votazioni":
-        for v in [v for v in D_["cvot"] if v["d"] == giorno]:
+        if "VALUES" not in q:
+            raise KeyError("manca VALUES")
+        for v in [v for v in D_["cvot"] if v["d"] == giorno and f"<{v['uri']}>" in q]:
             s = v["uri"]
             props = [(RDF + "type", U(OCD + "votazione")), (DC + "date", L(v["d"])), (DC + "identifier", L(s.rsplit("/", 1)[1])),
                      (DC + "description", L(v["desc"])), (RDFS + "label", L(f"Votazione n. {v['nv']}")),
@@ -190,7 +197,7 @@ def risposta(nome, q):
         for v in [v for v in D_["cvot"] if v["d"] == giorno and v["nv"] in (1, 2, 4)]:
             righe.append({"v": U(v["uri"]), "atto": U(f"{OCD}attocamera.rdf/ac19_1234"), "titolo": L("Disposizioni in materia di prova")})
     elif nome == "camera_voti":
-        for v in [v for v in D_["cvot"] if v["d"] == giorno]:
+        for v in [v for v in D_["cvot"] if v["d"] == giorno and f"<{v['uri']}>" in q]:
             righe += [{"v": U(v["uri"]), "dep": U(d), "espr": L(e)} for d, e in v["voti"].items()]
     elif nome == "senato_senatori":
         for s in D_["sen"]:
@@ -219,8 +226,10 @@ def risposta(nome, q):
         for sed, d in D_["sedute"]:
             righe.append({"s": U(f"http://dati.senato.it/sedutaassemblea/{sed}"), "data": D(d), "num": I(int(sed) - 22400)})
     elif nome == "senato_votazioni":
+        if "VALUES" in q or "POST" in q:
+            raise KeyError("il Senato non conosce VALUES")
         sed = seduta.rsplit("/", 1)[1]
-        for v in [v for v in D_["svot"] if v["sed"] == sed]:
+        for v in [v for v in D_["svot"] if v["sed"] == sed and f"<{v['uri']}>" in q]:
             s = v["uri"]
             props = [(RDF + "type", U(OSR + "Votazione")), (OSR + "numero", I(v["nv"])), (RDFS + "label", L(v["label"])),
                      (OSR + "seduta", U(seduta)), (OSR + "legislatura", I(19)),
@@ -241,7 +250,11 @@ def risposta(nome, q):
     m = re.search(r"LIMIT\s+(\d+)\s+OFFSET\s+(\d+)", q)
     if m:
         lim, off = int(m.group(1)), int(m.group(2))
+        if "ORDER BY" in q and lim + off > 10000:
+            raise ValueError("Virtuoso 22023 Error SR353: Sorted TOP clause specifies more then 10000 rows")
         righe = righe[off:off + min(lim, MAX_RIGHE)]
+    else:
+        righe = righe[:MAX_RIGHE]
     return {"head": {"vars": vars_}, "results": {"bindings": righe}}
 
 

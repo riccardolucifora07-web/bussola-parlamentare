@@ -28,6 +28,7 @@ from comune import CATEGORIE, categoria, leggi_json, nome_locale, pulisci_testo,
 from sparql import Endpoint  # noqa: E402
 
 RADICE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+VERSIONE_DATI = 2  # da aumentare quando cambia il formato dei file delle votazioni
 AVVISI = []
 
 
@@ -170,6 +171,8 @@ def aggiorna_ramo(ramo, dati_dir, scadenza, rifai, endpoint_url, solo_calcoli, r
     cart = os.path.join(dati_dir, ramo)
     os.makedirs(os.path.join(cart, "votazioni"), exist_ok=True)
     stato = leggi_json(os.path.join(cart, "stato.json"), {"fatti": {}})
+    if stato.get("versione") != VERSIONE_DATI:  # formato cambiato: si riscarica tutto
+        stato = {"versione": VERSIONE_DATI, "fatti": {}}
     ep = Endpoint(endpoint_url or mod.ENDPOINT, ramo, pausa=pausa, log=lambda *a: log(*a))
     rimaste = 0
 

@@ -124,11 +124,16 @@ SELECT DISTINCT ?s ?data ?num WHERE {{
 
 
 def votazioni_seduta(ep, seduta):
-    righe = ep.query_tutto(f"""# q:senato_votazioni seduta={seduta['uri']}
+    # l'endpoint del Senato non conosce VALUES e rifiuta le richieste POST:
+    # lotti di votazioni con FILTER IN, in GET (circa 350 righe per votazione)
+    uris = sorted({r["v"] for r in ep.query(f"""# q:senato_lista seduta={seduta['uri']}
+SELECT ?v WHERE {{ ?v a osr:Votazione ; osr:seduta <{seduta['uri']}> . }}""")})
+    righe = ep.query_lotti(f"""# q:senato_votazioni seduta={seduta['uri']}
 SELECT ?v ?p ?o WHERE {{
-  ?v a osr:Votazione ; osr:seduta <{seduta['uri']}> .
-  ?v ?p ?o .
-}}""", "?v ?p ?o")
+  ?v a osr:Votazione ; osr:seduta <{seduta['uri']}> ; ?p ?o .
+  FILTER (?v IN (%VALORI%))
+  FILTER (?p != osr:presente)
+}}""", uris, 20, separatore=", ")
     vot = {}
     for r in righe:
         v = vot.setdefault(r["v"], {"prop": {}, "voti": {}})
@@ -146,13 +151,13 @@ SELECT ?v ?p ?o WHERE {{
 
     titoli = {}
     try:
-        for r in ep.query_tutto(f"""# q:senato_ddl seduta={seduta['uri']}
+        for r in ep.query(f"""# q:senato_ddl seduta={seduta['uri']}
 SELECT DISTINCT ?v ?ddl ?titolo ?breve WHERE {{
   ?v a osr:Votazione ; osr:seduta <{seduta['uri']}> ; osr:oggetto ?og .
   ?og osr:relativoA ?ddl .
   OPTIONAL {{ ?ddl osr:titoloBreve ?breve }}
   OPTIONAL {{ ?ddl osr:titolo ?titolo }}
-}}""", "?v ?ddl"):
+}}"""):
             t = r.get("breve") or r.get("titolo")
             if t:
                 titoli.setdefault(r["v"], [])

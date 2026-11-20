@@ -124,12 +124,12 @@ def _filtro_giorno(giorno):
 
 
 def votazioni_giorno(ep, giorno):
-    """Tutte le votazioni di un giorno, con il voto di ogni deputato."""
-    righe = ep.query_tutto(f"""# q:camera_votazioni giorno={giorno}
-SELECT ?v ?p ?o WHERE {{
-  {_filtro_giorno(giorno)}
-  ?v ?p ?o .
-}}""", "?v ?p ?o")
+    """Tutte le votazioni di un giorno, con il voto di ogni deputato.
+    Le richieste sono a lotti di votazioni (VALUES): l'endpoint dà al massimo 10.000 righe."""
+    uris = sorted({r["v"] for r in ep.query(f"""# q:camera_lista giorno={giorno}
+SELECT ?v WHERE {{ {_filtro_giorno(giorno)} }}""")})
+    righe = ep.query_lotti(f"""# q:camera_votazioni giorno={giorno}
+SELECT ?v ?p ?o WHERE {{ VALUES ?v {{ %VALORI% }} ?v ?p ?o . }}""", uris, 40)
     vot = {}
     for r in righe:
         v = vot.setdefault(r["v"], {"id": r["v"], "d": giorno, "prop": {}})
@@ -141,31 +141,21 @@ SELECT ?v ?p ?o WHERE {{
     # titoli degli atti collegati (facoltativo)
     titoli_atti = {}
     try:
-        for r in ep.query_tutto(f"""# q:camera_atti giorno={giorno}
+        for r in ep.query(f"""# q:camera_atti giorno={giorno}
 SELECT DISTINCT ?v ?atto ?titolo WHERE {{
   {_filtro_giorno(giorno)}
   ?v ?p ?atto . ?atto a ocd:atto ; dc:title ?titolo .
-}}""", "?v ?atto"):
+}}"""):
             titoli_atti.setdefault(r["v"], [])
             if r["titolo"] not in titoli_atti[r["v"]]:
                 titoli_atti[r["v"]].append(r["titolo"])
     except Exception as e:  # noqa: BLE001
         ep.log(f"  [camera] titoli degli atti non disponibili per {giorno}: {e}")
 
-    # voti individuali
+    # voti individuali: circa 400 righe per votazione, quindi lotti da 20
     voti = {}
-    try:
-        righe_voti = ep.query_tutto(f"""# q:camera_voti giorno={giorno}
-SELECT ?v ?dep ?espr WHERE {{
-  {_filtro_giorno(giorno)}
-  ?voto ocd:rif_votazione ?v ; ocd:rif_deputato ?dep ; dc:type ?espr .
-}}""", "?v ?dep")
-    except Exception as e:  # noqa: BLE001
-        ep.log(f"  [camera] query del giorno troppo pesante ({e}); procedo votazione per votazione")
-        righe_voti = []
-        for uri in vot:
-            righe_voti += [dict(r, v=uri) for r in ep.query_tutto(f"""# q:camera_voti_singola
-SELECT ?dep ?espr WHERE {{ ?voto ocd:rif_votazione <{uri}> ; ocd:rif_deputato ?dep ; dc:type ?espr . }}""", "?dep")]
+    righe_voti = ep.query_lotti(f"""# q:camera_voti giorno={giorno}
+SELECT ?v ?dep ?espr WHERE {{ VALUES ?v {{ %VALORI% }} ?voto ocd:rif_votazione ?v ; ocd:rif_deputato ?dep ; dc:type ?espr . }}""", uris, 20)
     sconosciute = set()
     for r in righe_voti:
         c = codice_camera(r.get("espr"))
