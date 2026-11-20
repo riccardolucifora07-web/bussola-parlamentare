@@ -77,13 +77,52 @@ def posizione(f, c, a):
     return "F" if f == m else "C" if c == m else "A"
 
 
+FIDUCIE_CONSIDERATE = 15   # ultime votazioni di fiducia guardate per ogni gruppo
+SOGLIA_COALIZIONE = 0.7    # quota di Sì (o di No) per dirsi di maggioranza (o di opposizione)
+
+
 class Calcolo:
-    def __init__(self, membri, gruppi, votazioni, oggi):
+    def __init__(self, membri, gruppi, votazioni, oggi, inizio_governo=None):
         self.membri = membri          # lista ordinata per indice i
         self.gruppi = gruppi          # gid -> info (con 'coal' e 'chiave')
         self.votazioni = votazioni    # ordinate per data e numero
         self.oggi = oggi
+        self.inizio_governo = inizio_governo
         self._cache_date = {}
+
+    def coalizioni_da_fiducia(self):
+        """Maggioranza e opposizione ricavate dai voti di fiducia al governo in carica:
+        un gruppo che nelle sue ultime fiducie ha votato Sì almeno il 70% delle volte è di
+        maggioranza, No almeno il 70% di opposizione, altrimenti 'altro'. Il Misto resta 'altro'."""
+        storia = defaultdict(list)
+        for v in self.votazioni:
+            if v.get("c") != "fiducia" or "S" in v.get("f", ""):
+                continue
+            if self.inizio_governo and v["d"] < self.inizio_governo:
+                continue
+            gvec = self.gruppi_alla_data(v["d"])
+            s = v.get("v", "")
+            conta = {}
+            for i, g in enumerate(gvec):
+                c = s[i] if i < len(s) else "."
+                if g is not None and c in "FCA":
+                    conta.setdefault(g, [0, 0, 0])["FCA".index(c)] += 1
+            for g, x in conta.items():
+                p = posizione(*x)
+                if p in CODICI_POSIZIONE:
+                    storia[g].append(p)
+        out = {}
+        for g, pos in storia.items():
+            if self.gruppi.get(g, {}).get("chiave") == "misto":
+                continue
+            ultime = pos[-FIDUCIE_CONSIDERATE:]
+            n = len(ultime)
+            if n < 3:
+                continue
+            si, no = ultime.count("F") / n, ultime.count("C") / n
+            coal = "maggioranza" if si >= SOGLIA_COALIZIONE else "opposizione" if no >= SOGLIA_COALIZIONE else "altro"
+            out[g] = {"coal": coal, "n": n, "si": round(si, 3), "no": round(no, 3)}
+        return out
 
     def gruppi_alla_data(self, d):
         if d not in self._cache_date:
@@ -92,6 +131,15 @@ class Calcolo:
 
     def esegui(self):
         G = self.gruppi
+        auto = self.coalizioni_da_fiducia()
+        for g, info in G.items():
+            if g in auto:
+                info["coal"] = auto[g]["coal"]
+                info["coal_fonte"] = "fiducia"
+                info["fiducia"] = {k: auto[g][k] for k in ("n", "si", "no")}
+            else:
+                info["coal_fonte"] = "configurazione"
+                info.pop("fiducia", None)
         nm = len(self.membri)
         st = [dict(tot=0, pres=0, mis=0, ass=0, cmp=0, dis=0) for _ in range(nm)]
         diversi = [[] for _ in range(nm)]

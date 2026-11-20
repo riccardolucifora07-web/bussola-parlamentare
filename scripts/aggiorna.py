@@ -166,7 +166,7 @@ def salva_anagrafe(cart, membri, gruppi, extra=None):
 
 
 # ---------- un ramo ----------
-def aggiorna_ramo(ramo, dati_dir, scadenza, rifai, endpoint_url, solo_calcoli, regole, pausa):
+def aggiorna_ramo(ramo, dati_dir, scadenza, rifai, endpoint_url, solo_calcoli, regole, pausa, governo=None):
     mod = camera if ramo == "camera" else senato
     cart = os.path.join(dati_dir, ramo)
     os.makedirs(os.path.join(cart, "votazioni"), exist_ok=True)
@@ -253,7 +253,7 @@ def aggiorna_ramo(ramo, dati_dir, scadenza, rifai, endpoint_url, solo_calcoli, r
     per_file = [(p, leggi_json(p)["votazioni"]) for p in mesi]
     tutte = [v for _, vs in per_file for v in vs]
     oggi = dt.date.today().isoformat()
-    ris = Calcolo(membri, gruppi, tutte, oggi).esegui()
+    ris = Calcolo(membri, gruppi, tutte, oggi, (governo or {}).get("dal")).esegui()
     for p, vs in per_file:
         scrivi_json(p, {"votazioni": vs})
     righe = [[v["id"], v["d"], v.get("n"), v.get("t", "")[:200], v.get("o", "")[:200], v["c"], v["f"],
@@ -297,6 +297,15 @@ def main():
     meta_p = os.path.join(a.dati, "meta.json")
     meta = leggi_json(meta_p, {"rami": {}})
     falliti = 0
+    if not a.solo_calcoli:
+        try:
+            gov = camera.governo_in_carica(Endpoint(os.environ.get("BUSSOLA_CAMERA_ENDPOINT") or camera.ENDPOINT, "camera", pausa=a.pausa))
+            if gov:
+                meta["governo"] = gov
+                log(f"governo in carica: {gov['nome']} dal {gov['dal']}")
+        except Exception as e:  # noqa: BLE001
+            log(f"governo in carica non disponibile ({e}): uso l'ultimo noto")
+    governo = meta.get("governo")
     for i, ramo in enumerate(rami):
         # il tempo si divide tra i rami rimasti, lasciando 8 minuti per i calcoli finali
         restante = a.max_minuti * 60 - (time.time() - inizio) - 8 * 60 * (len(rami) - i)
@@ -304,7 +313,7 @@ def main():
         url = os.environ.get(f"BUSSOLA_{ramo.upper()}_ENDPOINT")
         AVVISI.clear()
         try:
-            ris = aggiorna_ramo(ramo, a.dati, scadenza, a.rifai, url, a.solo_calcoli, regole, a.pausa)
+            ris = aggiorna_ramo(ramo, a.dati, scadenza, a.rifai, url, a.solo_calcoli, regole, a.pausa, governo)
             ris["aggiornato"] = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
             ris["avvisi"] = list(AVVISI)
             meta["rami"][ramo] = ris

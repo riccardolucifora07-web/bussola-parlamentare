@@ -82,29 +82,40 @@ SELECT DISTINCT ?g ?sigla ?nome ?etichetta WHERE {{
 
 
 def incarichi_gruppo(ep):
-    """Presidenti dei gruppi (capigruppo), se pubblicati. Facoltativo: in caso di errore restituisce []."""
+    """Presidenti dei gruppi (capigruppo) con le date dell'incarico."""
     righe = ep.query_tutto(f"""# q:camera_incarichi
-SELECT DISTINCT ?d ?i ?g ?p ?o WHERE {{
-  ?d a ocd:deputato ; ocd:rif_leg <{LEG}> ; ocd:rif_incarico ?i .
-  ?i ocd:rif_gruppoParlamentare ?g ; ?p ?o .
-  FILTER (isLiteral(?o))
-}}""", "?d ?i ?p")
-    per_inc = {}
+SELECT DISTINCT ?d ?g ?inizio ?fine WHERE {{
+  ?i a ocd:incarico ; ocd:rif_leg <{LEG}> ; ocd:rif_deputato ?d ;
+     ocd:rif_gruppoParlamentare ?g ; ocd:ruolo ?ruolo .
+  OPTIONAL {{ ?i ocd:startDate ?inizio }}
+  OPTIONAL {{ ?i ocd:endDate ?fine }}
+  FILTER (regex(str(?ruolo), "^PRESIDENTE$", "i"))
+}}""", "?g ?d ?inizio")
+    return [{"id": r["d"], "g": r["g"], "da": data_iso(r.get("inizio")), "a": data_iso(r.get("fine"))} for r in righe]
+
+
+_RE_GOVERNO = re.compile(r"^\s*([IVXL]+)\s+Governo\s+(.+?)\s*(?:\(.*)?$", re.I)
+
+
+def governo_in_carica(ep):
+    """Governo in carica secondo la Camera, es. {'nome': 'Governo Meloni', 'breve': 'Meloni', 'dal': '2022-10-21'}."""
+    righe = ep.query("""# q:camera_governi
+SELECT DISTINCT ?g ?t ?d WHERE { ?g a ocd:governo ; dc:title ?t ; dc:date ?d . FILTER (str(?d) >= "1994") }""")
+    governi = []
     for r in righe:
-        x = per_inc.setdefault(r["i"], {"id": r["d"], "g": r["g"], "testi": [], "da": None, "a": None})
-        p = nome_locale(r["p"])
-        if p == "startDate":
-            x["da"] = data_iso(r["o"])
-        elif p == "endDate":
-            x["a"] = data_iso(r["o"])
-        else:
-            x["testi"].append(str(r["o"]))
-    out = []
-    for x in per_inc.values():
-        t = " ".join(x["testi"]).upper()
-        if "PRESIDENTE" in t and not re.search(r"VICE\s*-?\s*PRESIDENTE", t):
-            out.append({"id": x["id"], "g": x["g"], "da": x["da"], "a": x["a"]})
-    return out
+        parti = str(r.get("d", "")).split("-")
+        da = data_iso(parti[0])
+        a = data_iso(parti[1]) if len(parti) > 1 and parti[1].strip() else None
+        m = _RE_GOVERNO.match(str(r.get("t", "")))
+        if not da or not m:
+            continue
+        num, chi = m.group(1).upper(), nome_proprio(m.group(2))
+        breve = chi if num == "I" else f"{chi} {num}"
+        governi.append({"nome": f"Governo {breve}", "breve": breve, "dal": da, "al": a})
+    if not governi:
+        return None
+    aperti = [g for g in governi if not g["al"]] or governi
+    return max(aperti, key=lambda g: g["dal"])
 
 
 def giorni(ep):

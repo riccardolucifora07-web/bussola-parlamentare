@@ -57,7 +57,8 @@ def main():
         assert membri[0]["cognome"] == "Rossi 1", membri[0]["cognome"]
         assert any(m["cognome"] == "D'Alessio" for m in membri)
         assert membri[0]["capo"] and membri[0]["capo"][0][0] == "gr1", "capogruppo Camera"
-        assert not membri[1]["capo"], "il vicepresidente non è capogruppo"
+        assert not membri[1]["capo"], "solo i presidenti dei gruppi sono capigruppo"
+        assert meta["governo"]["nome"] == "Governo Meloni" and meta["governo"]["dal"] == "2022-10-21", meta.get("governo")
         G = leggi(os.path.join(dati, "camera", "gruppi.json"))
         cambi = G["cambi"]
         sciolti = [c for c in cambi if c["sciolto"]]
@@ -66,6 +67,7 @@ def main():
         assert len(individuali) == 1 and individuali[0]["a"] == "gr8"
         gfdi = next(g for g in G["gruppi"] if g["id"] == "gr1")
         assert gfdi["coal"] == "maggioranza" and gfdi["coesione"] > 0.8 and gfdi["allineamento"] > 0.9, gfdi
+        assert gfdi["coal_fonte"] == "configurazione", "con una sola fiducia vale la configurazione"
         gpd = next(g for g in G["gruppi"] if g["id"] == "gr2")
         assert gpd["allineamento"] < 0.2, gpd
         assert G["convergenza"]["ids"] == [] or len(G["convergenza"]["m"]) == len(G["convergenza"]["ids"])
@@ -130,5 +132,29 @@ def main():
         shutil.rmtree(dati, ignore_errors=True)
 
 
+
+
+def prova_coalizioni():
+    """Maggioranza e opposizione dedotte dai voti di fiducia, anche quando un gruppo cambia campo."""
+    sys.path.insert(0, os.path.join(RADICE, "scripts"))
+    from calcoli import Calcolo
+    G = {"a": {"chiave": "fdi", "coal": "opposizione"}, "b": {"chiave": "pd", "coal": "maggioranza"},
+         "c": {"chiave": "az", "coal": "opposizione"}, "m": {"chiave": "misto", "coal": "altro"}}
+    membri = [{"i": i, "mandati": [["2022-10-13", None]], "adesioni": [[g, "2022-10-13", None]]}
+              for i, g in enumerate("aaabbbccm")]
+    vot = []
+    for k in range(20):
+        c_voto = "FFF" if k < 10 else "CCC"  # il gruppo c passa all'opposizione dopo 10 fiducie
+        vot.append({"id": f"v{k}", "d": f"2023-01-{k + 1:02d}", "c": "fiducia", "f": "Q", "v": "FFF" + "CCC" + c_voto + "F"})
+    vot.append({"id": "x", "d": "2022-10-20", "c": "fiducia", "f": "Q", "v": "CCCFFFFFF"})  # prima del governo: ignorata
+    Calcolo(membri, G, vot, "2026-11-20", "2022-10-21").esegui()
+    assert G["a"]["coal"] == "maggioranza" and G["a"]["coal_fonte"] == "fiducia", G["a"]
+    assert G["b"]["coal"] == "opposizione", G["b"]
+    assert G["c"]["coal"] == "altro" and G["c"]["fiducia"]["n"] == 15, G["c"]  # ultime 15: 5 Sì e 10 No
+    assert G["m"]["coal"] == "altro" and G["m"]["coal_fonte"] == "configurazione", G["m"]
+    print("prova coalizioni superata")
+
+
 if __name__ == "__main__":
+    prova_coalizioni()
     main()

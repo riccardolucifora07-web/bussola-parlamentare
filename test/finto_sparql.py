@@ -171,9 +171,10 @@ def risposta(nome, q):
             righe.append({"g": U(f"{OCD}gruppoParlamentare.rdf/{g}"), "sigla": L(sig), "nome": L(f"{nom} (13.10.2022)")})
     elif nome == "camera_incarichi":
         capo = D_["dep"][0]["uri"]
-        righe = [{"d": U(capo), "i": U(capo + "_inc1"), "g": U(f"{OCD}gruppoParlamentare.rdf/gr1"), "p": U(DC + "title"), "o": L("PRESIDENTE")},
-                 {"d": U(capo), "i": U(capo + "_inc1"), "g": U(f"{OCD}gruppoParlamentare.rdf/gr1"), "p": U(OCD + "startDate"), "o": L("20221019")},
-                 {"d": U(D_["dep"][1]["uri"]), "i": U("x_inc2"), "g": U(f"{OCD}gruppoParlamentare.rdf/gr1"), "p": U(DC + "title"), "o": L("VICEPRESIDENTE")}]
+        righe = [{"d": U(capo), "g": U(f"{OCD}gruppoParlamentare.rdf/gr1"), "inizio": L("20221019")}]
+    elif nome == "camera_governi":
+        righe = [{"g": U(OCD + "governo.rdf/g182"), "t": L("I Governo Draghi (12.02.2021 - 21.10.2022)"), "d": L("20210212-20221021")},
+                 {"g": U(OCD + "governo.rdf/g202"), "t": L("I Governo Meloni (21.10.2022)"), "d": L("20221021")}]
     elif nome == "camera_giorni":
         righe = [{"data": L(g)} for g in sorted({v["d"] for v in D_["cvot"]})]
     elif nome == "camera_lista":

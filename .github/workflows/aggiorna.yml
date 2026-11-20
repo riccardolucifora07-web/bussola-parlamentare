@@ -18,6 +18,7 @@ on:
     paths: ["site/**", "config/**", "scripts/**", ".github/workflows/**"]
 
 permissions:
+  actions: write     # per tenere attivo l'aggiornamento programmato
   contents: write    # per salvare i dati nel ramo "dati"
   pages: write       # per pubblicare il sito
   id-token: write
@@ -86,3 +87,11 @@ jobs:
           path: _site
       - id: pubblica
         uses: actions/deploy-pages@v4
+
+      - name: Tieni attivo l'aggiornamento programmato
+        # GitHub sospende gli aggiornamenti programmati dopo 60 giorni senza attività:
+        # riattivarli ogni notte azzera il conteggio
+        if: always() && github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${GITHUB_REPOSITORY}/actions/workflows/aggiorna.yml/enable" || echo "riattivazione non riuscita (non grave)"

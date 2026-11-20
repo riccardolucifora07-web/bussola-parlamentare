@@ -45,7 +45,9 @@ Serve un account GitHub gratuito ([github.com/signup](https://github.com/signup)
 
 Da qui in poi non devi fare nulla: ogni notte arrivano le votazioni del giorno prima, i nuovi cambi di gruppo e i nuovi capigruppo.
 
-> Se il repository resta per 60 giorni senza modifiche, GitHub può sospendere gli aggiornamenti programmati e te lo segnala per email. Per riattivarli basta un clic: **Actions → Aggiornamento quotidiano → Enable workflow**.
+> GitHub sospende gli aggiornamenti programmati dei repository fermi da 60 giorni. Per evitarlo il programma si riattiva da solo ogni notte. Se mai succedesse comunque, GitHub lo segnala per email e basta un clic: **Actions → Aggiornamento quotidiano → Enable workflow**.
+
+**Cosa si aggiorna da solo**: votazioni, composizione dei gruppi, cambi di gruppo, capigruppo di Camera e Senato, governo in carica, quali gruppi sono di maggioranza od opposizione (dai voti di fiducia) e l'elenco delle votazioni più rilevanti. **Cosa resta a mano**: i leader di partito, che non sono pubblicati in nessuna fonte aperta affidabile, e i dati economici annuali.
 
 ## Se qualcosa va storto
 
@@ -59,13 +61,13 @@ Da qui in poi non devi fare nulla: ogni notte arrivano le votazioni del giorno p
 
 | Cosa | Dove |
 |---|---|
-| Quali gruppi sono di maggioranza od opposizione, nomi brevi | `config/gruppi.json`: gli indicatori si ricalcolano al giro dopo, senza riscaricare nulla |
+| Nomi brevi dei gruppi e collocazione di riserva (usata solo finché non ci sono almeno 3 voti di fiducia) | `config/gruppi.json`: gli indicatori si ricalcolano al giro dopo, senza riscaricare nulla |
 | Leader di partito, famiglie europee, capigruppo di riserva | `site/index.html`, oggetto `PARTIES` |
 | Le 10 votazioni in evidenza con scheda di contesto | `site/index.html`, oggetto `VOTES` |
 | Dati economici (annuali) | `site/index.html`, oggetti `SERIES` e `INDICATORS` |
 | Orario dell'aggiornamento | `.github/workflows/aggiorna.yml`, riga `cron` |
 
-Se cambia il governo, aggiorna le coalizioni in `config/gruppi.json` e la scritta "sostiene il Governo Meloni" in `site/index.html` (oggetto `COAL`).
+Se cambia il governo non serve fare nulla: il nome arriva dai dati della Camera e la maggioranza si ricalcola dai voti di fiducia.
 
 ## Provarlo sul tuo computer
 
