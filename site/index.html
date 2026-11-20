@@ -1,0 +1,1719 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bussola Parlamentare</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,500;6..72,650&display=swap" rel="stylesheet">
+<style>
+/* Bussola Parlamentare. Layout: barra superiore con navigazione a schede; ogni sezione = riepilogo in alto, dettaglio sotto. Colori dati: coalizioni (blu/arancio/grigio), voti come il tabellone d'Aula (verde Sì, rosso No, giallo astenuti). */
+:root {
+  color-scheme: light;
+  --bg: #eef0ef;
+  --surface: #fcfcfb;
+  --ink: #14181b;
+  --ink-2: #4d555c;
+  --muted: #737a81;
+  --rule: #dde1e3;
+  --accent: #1e5b6b;
+  --accent-soft: #dcebee;
+  --c-mag: #2a78d6;
+  --c-opp: #eb6834;
+  --c-alt: #a29f98;
+  --v-s: #008300;
+  --v-n: #e34948;
+  --v-a: #eda100;
+  --band-1: rgba(20, 24, 27, 0.035);
+  --band-2: rgba(20, 24, 27, 0.075);
+  --font-display: "Newsreader", Georgia, "Times New Roman", serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0f1214;
+    --surface: #181c1f;
+    --ink: #eef0ef;
+    --ink-2: #c3c7c9;
+    --muted: #8f969b;
+    --rule: #2b3135;
+    --accent: #7cc3d1;
+    --accent-soft: #1d3238;
+    --c-mag: #3987e5;
+    --c-opp: #d95926;
+    --c-alt: #77746e;
+    --v-s: #0ca30c;
+    --v-n: #e66767;
+    --v-a: #c98500;
+    --band-1: rgba(255, 255, 255, 0.03);
+    --band-2: rgba(255, 255, 255, 0.07);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0f1214;
+  --surface: #181c1f;
+  --ink: #eef0ef;
+  --ink-2: #c3c7c9;
+  --muted: #8f969b;
+  --rule: #2b3135;
+  --accent: #7cc3d1;
+  --accent-soft: #1d3238;
+  --c-mag: #3987e5;
+  --c-opp: #d95926;
+  --c-alt: #77746e;
+  --v-s: #0ca30c;
+  --v-n: #e66767;
+  --v-a: #c98500;
+  --band-1: rgba(255, 255, 255, 0.03);
+  --band-2: rgba(255, 255, 255, 0.07);
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-underline-offset: 2px; }
+a:focus-visible, button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 650; text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: 26px; line-height: 1.15; }
+h2 { font-size: 24px; line-height: 1.2; }
+h3 { font-size: 18px; line-height: 1.25; }
+p { margin: 0; }
+.num, td.n, .tile-value { font-variant-numeric: tabular-nums; }
+
+/* Header */
+.top {
+  background: var(--surface);
+  border-bottom: 1px solid var(--rule);
+  position: sticky; top: 0; z-index: 20;
+}
+.top-inner { max-width: 1180px; margin: 0 auto; padding: 14px 20px 0; display: grid; gap: 10px; }
+.brand { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.brand-sub { color: var(--muted); font-size: 13px; }
+nav.tabs { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+nav.tabs::-webkit-scrollbar { display: none; }
+nav.tabs a {
+  white-space: nowrap; text-decoration: none; color: var(--ink-2);
+  padding: 9px 12px 11px; font-weight: 500; font-size: 14px;
+  border-bottom: 3px solid transparent;
+}
+nav.tabs a:hover { color: var(--ink); }
+nav.tabs a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--accent); }
+
+main { max-width: 1180px; margin: 0 auto; padding: 22px 20px 60px; }
+section.view { display: none; gap: 18px; }
+section.view.active { display: grid; }
+.lede { max-width: 72ch; color: var(--ink-2); }
+.view-head { display: grid; gap: 6px; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 18px;
+  min-width: 0;
+}
+.card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.src { color: var(--muted); font-size: 12.5px; }
+.src a { color: var(--muted); }
+.note { color: var(--ink-2); font-size: 13.5px; }
+.badge { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); }
+.proto {
+  display: flex; gap: 10px; align-items: flex-start;
+  background: var(--accent-soft); color: var(--ink); border-radius: var(--radius);
+  padding: 10px 14px; font-size: 13.5px;
+}
+.proto strong { color: var(--accent); }
+
+.grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 18px; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.tile { background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius); padding: 12px 14px; display: grid; gap: 2px; }
+.tile-label { color: var(--muted); font-size: 12.5px; }
+.tile-value { font-size: 24px; font-weight: 600; line-height: 1.2; }
+.tile-sub { color: var(--ink-2); font-size: 12.5px; }
+
+.swatch { display: inline-block; width: 10px; height: 10px; border-radius: 3px; flex: none; }
+
+/* Hemicycle */
+.hemi-wrap { display: grid; gap: 12px; }
+.hemi svg { width: 100%; height: auto; display: block; }
+.hemi circle { transition: opacity .15s; }
+.hemi.dim circle:not(.on) { opacity: 0.18; }
+.hemi-center { font-family: var(--font-display); font-weight: 650; fill: var(--ink); }
+.hemi-center-sub { fill: var(--muted); font-size: 12px; }
+.coal-bar { display: flex; height: 12px; border-radius: 6px; overflow: hidden; gap: 2px; background: var(--surface); }
+.coal-bar span { display: block; height: 100%; }
+.legend-row { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--ink-2); }
+.legend-row span { display: inline-flex; align-items: center; gap: 6px; }
+
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th { text-align: left; font-weight: 600; color: var(--muted); font-size: 12px; text-transform: none; padding: 8px 8px; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+td { padding: 8px 8px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+td.n, th.n { text-align: right; white-space: nowrap; }
+.tbl-scroll { overflow-x: auto; }
+tr.grp-row { cursor: pointer; }
+tr.grp-row:hover td, tr.grp-row.hl td { background: var(--accent-soft); }
+.seatbar { height: 8px; border-radius: 4px; display: block; min-width: 2px; }
+.grp-name { display: flex; gap: 8px; align-items: baseline; }
+.grp-name .swatch { transform: translateY(1px); }
+.misto-tag { color: var(--muted); font-size: 12px; }
+
+/* Party pickers */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+button.chip {
+  font: inherit; font-size: 13.5px; cursor: pointer;
+  border: 1px solid var(--rule); background: var(--surface); color: var(--ink);
+  border-radius: 999px; padding: 5px 12px; display: inline-flex; align-items: center; gap: 7px;
+}
+button.chip:hover { border-color: var(--ink-2); }
+button.chip[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+
+.party-head { display: flex; gap: 14px; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; }
+.kv { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; font-size: 14px; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; }
+
+/* Vote chips */
+.vote { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; padding: 2px 8px; border-radius: 6px; font-size: 12.5px; font-weight: 700; letter-spacing: .01em; }
+.vote.S { background: var(--v-s); color: #fff; }
+.vote.N { background: var(--v-n); color: #fff; }
+.vote.A { background: var(--v-a); color: #0b0b0b; }
+.vote.X { background: transparent; color: var(--muted); border: 1px dashed var(--muted); font-weight: 600; }
+.vote.O { background: transparent; color: var(--muted); border: 1px solid var(--rule); font-weight: 500; }
+
+.votes-list { display: grid; gap: 14px; }
+.vcard { display: grid; gap: 12px; }
+.vmeta { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; color: var(--ink-2); font-size: 13px; }
+.esito { font-weight: 700; font-size: 12.5px; padding: 2px 8px; border-radius: 6px; border: 1px solid var(--rule); color: var(--ink); }
+.tabellone { display: grid; gap: 6px; }
+.tab-bar { display: flex; gap: 2px; height: 26px; border-radius: 6px; overflow: hidden; }
+.tab-bar span { display: flex; align-items: center; justify-content: center; font-size: 12.5px; font-weight: 700; min-width: 0; overflow: hidden; white-space: nowrap; }
+.tab-bar .S { background: var(--v-s); color: #fff; }
+.tab-bar .N { background: var(--v-n); color: #fff; }
+.tab-bar .A { background: var(--v-a); color: #0b0b0b; }
+.tab-legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--ink-2); }
+.pos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px 14px; }
+.pos { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13.5px; padding: 3px 0; border-bottom: 1px dotted var(--rule); }
+
+/* Matrix */
+.matrix td, .matrix th { text-align: center; padding: 0; border: 0; }
+.matrix th { font-size: 11.5px; color: var(--ink-2); padding: 4px; }
+.matrix th.rowh { text-align: right; padding-right: 8px; white-space: nowrap; }
+.matrix td div { margin: 1px; height: 34px; min-width: 40px; display: flex; align-items: center; justify-content: center; border-radius: 4px; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.matrix td.self div { background: transparent; color: var(--muted); border: 1px dashed var(--rule); }
+
+/* Governi */
+.ind-picker { display: flex; flex-wrap: wrap; gap: 10px 22px; }
+.ind-group { display: grid; gap: 4px; }
+.filters { display: grid; gap: 10px; }
+.search { display: flex; align-items: center; gap: 8px; }
+.search input { font: inherit; font-size: 14px; padding: 6px 10px; border: 1px solid var(--rule); border-radius: 8px; background: var(--surface); color: var(--ink); width: min(320px, 100%); }
+.lead-name { font-weight: 600; }
+.nd { color: var(--muted); }
+.chart-box { position: relative; }
+.chart-box svg { display: block; width: 100%; height: auto; overflow: visible; }
+.axis text, .lbl { fill: var(--muted); font-size: 11px; font-family: var(--font-body); }
+.gov-lbl { fill: var(--ink-2); font-size: 10.5px; font-family: var(--font-body); }
+.gov-lbl.sel { fill: var(--accent); font-weight: 700; }
+.gridline { stroke: var(--rule); stroke-width: 1; }
+.zeroline { stroke: var(--muted); stroke-width: 1; }
+.series-line { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; }
+.series-area { fill: var(--accent); opacity: 0.08; }
+.series-dot { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }
+.bar-pos { fill: var(--accent); }
+.bar-neg { fill: var(--muted); }
+.band-sel { fill: var(--accent); opacity: 0.14; }
+.crosshair { stroke: var(--ink-2); stroke-width: 1; stroke-dasharray: 3 3; }
+.gov-card { display: grid; gap: 12px; }
+.gov-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.gm { border: 1px solid var(--rule); border-radius: 8px; padding: 10px 12px; display: grid; gap: 2px; }
+.gm b { font-size: 19px; font-variant-numeric: tabular-nums; font-weight: 600; }
+.gm span { color: var(--muted); font-size: 12px; }
+.gm small { color: var(--ink-2); font-size: 12px; }
+tr.gov-row { cursor: pointer; }
+tr.gov-row:hover td { background: var(--accent-soft); }
+tr.gov-row.sel td { background: var(--accent-soft); font-weight: 600; }
+.caveat { border-left: 3px solid var(--accent); padding: 6px 12px; color: var(--ink-2); font-size: 13.5px; max-width: 80ch; }
+
+/* Cambi */
+.arrow { color: var(--muted); padding: 0 4px; }
+
+/* Metodo */
+.prose { max-width: 75ch; display: grid; gap: 10px; }
+.prose ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+.prose h3 { margin-top: 8px; }
+
+/* Tooltip */
+#tip {
+  position: fixed; z-index: 50; pointer-events: none;
+  background: var(--ink); color: var(--surface);
+  padding: 7px 10px; border-radius: 8px; font-size: 12.5px; line-height: 1.4;
+  max-width: 260px; opacity: 0; transition: opacity .08s;
+  box-shadow: 0 6px 20px rgba(0,0,0,.18);
+}
+#tip.on { opacity: 1; }
+#tip b { font-weight: 600; }
+
+.footer { color: var(--muted); font-size: 12.5px; margin-top: 8px; }
+
+@media (max-width: 520px) {
+  main { padding: 16px 16px 48px; }
+  .top-inner { padding: 12px 16px 0; }
+  h2 { font-size: 21px; }
+  .card { padding: 14px; }
+  .tile-value { font-size: 21px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}
+
+/* ---- versione con dati aggiornati ogni giorno ---- */
+.stato { display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap; background: var(--accent-soft); border-radius: var(--radius); padding: 10px 14px; font-size: 13.5px; margin-bottom: 18px; }
+.stato strong { color: var(--accent); }
+.stato.err { background: color-mix(in srgb, var(--v-n) 14%, var(--surface)); }
+.loading { color: var(--muted); }
+.frow { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; }
+.frow label { display: inline-flex; gap: 8px; align-items: center; font-size: 13.5px; color: var(--ink-2); }
+select { font: inherit; font-size: 14px; padding: 6px 10px; border: 1px solid var(--rule); border-radius: 8px; background: var(--surface); color: var(--ink); max-width: 100%; }
+input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px; }
+details > summary { cursor: pointer; font-weight: 600; font-size: 14px; }
+details.card > summary { font-family: var(--font-display); font-size: 17px; }
+button.link { font: inherit; font-size: 13.5px; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; justify-self: start; }
+button.more { justify-self: center; }
+.vrow { display: grid; gap: 8px; padding: 14px 18px; }
+.vrow h3.vt { font-family: var(--font-body); font-size: 15.5px; font-weight: 600; line-height: 1.35; letter-spacing: 0; }
+.vrow .sub { color: var(--ink-2); font-size: 13.5px; }
+.tab-bar.slim { height: 10px; border-radius: 5px; max-width: 560px; }
+.tab-bar.slim span { font-size: 0; }
+.tab-legend.sm { font-size: 12.5px; gap: 10px; }
+.gpos { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12.5px; color: var(--ink-2); }
+.gpos > span { display: inline-flex; gap: 5px; align-items: center; }
+.vote.sm { min-width: 0; padding: 1px 6px; font-size: 11.5px; border-radius: 5px; }
+.det { display: grid; gap: 14px; border-top: 1px solid var(--rule); padding-top: 12px; }
+.det:empty { display: none; }
+.names { font-size: 13px; color: var(--ink-2); line-height: 1.65; margin-top: 6px; }
+.names b { color: var(--ink); font-weight: 600; }
+.flagtag { font-size: 11.5px; font-weight: 600; color: var(--ink-2); border: 1px solid var(--rule); border-radius: 999px; padding: 1px 8px; }
+th.sort { cursor: pointer; user-select: none; }
+th.sort:hover { color: var(--ink); }
+th.sort[aria-sort] { color: var(--ink); }
+th.sort[aria-sort="ascending"]::after { content: " ▲"; font-size: 9px; }
+th.sort[aria-sort="descending"]::after { content: " ▼"; font-size: 9px; }
+tr.click { cursor: pointer; }
+tr.click:hover td, tr.click.sel td { background: var(--accent-soft); }
+.minibar { display: inline-block; height: 8px; border-radius: 4px; background: var(--accent); vertical-align: middle; min-width: 2px; }
+.minibar.muted { background: var(--muted); }
+.cell-bar { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+.cell-bar .track { width: 56px; height: 8px; border-radius: 4px; background: var(--band-2); position: relative; overflow: hidden; flex: none; }
+.cell-bar .track i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent); border-radius: 4px; }
+.hist { display: grid; gap: 4px; font-size: 13.5px; }
+.hist div { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.close { float: right; }
+.empty { color: var(--muted); font-size: 13.5px; }
+.ok-badge { font-size: 11.5px; font-weight: 600; color: var(--accent); }
+[hidden] { display: none !important; }
+#parl-det { scroll-margin-top: 120px; }
+
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-inner">
+    <div class="brand">
+      <h1>Bussola Parlamentare</h1>
+      <span class="brand-sub" id="brand-sub">XIX legislatura · dati ufficiali di Camera e Senato</span>
+    </div>
+    <nav class="tabs" aria-label="Sezioni">
+      <a href="#parlamento">Parlamento</a>
+      <a href="#forze">Forze politiche</a>
+      <a href="#voti">Votazioni</a>
+      <a href="#parlamentari">Parlamentari</a>
+      <a href="#cambi">Cambi di gruppo</a>
+      <a href="#governi">Governi ed economia</a>
+      <a href="#metodo">Fonti e metodo</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="stato" id="stato-dati" role="status"><span class="loading">Carico i dati ufficiali…</span></div>
+
+  <!-- PARLAMENTO -->
+  <section class="view" id="v-parlamento">
+    <div class="view-head">
+      <h2>Composizione del Parlamento</h2>
+      <p class="lede">Gruppi parlamentari di Camera e Senato oggi, divisi tra la maggioranza che sostiene il Governo, le opposizioni e gli altri. I numeri si aggiornano ogni giorno dai dati aperti ufficiali. Passa sul grafico o su una riga per evidenziare un gruppo.</p>
+    </div>
+    <div class="tiles" id="parl-tiles"></div>
+    <div class="grid-2">
+      <div class="card" id="card-camera"></div>
+      <div class="card" id="card-senato"></div>
+    </div>
+    <div class="card" id="leaders"></div>
+  </section>
+
+  <!-- FORZE POLITICHE -->
+  <section class="view" id="v-forze">
+    <div class="view-head">
+      <h2>Forze politiche</h2>
+      <p class="lede">Per ogni gruppo: seggi, leader, quanto vota compatto, quanto partecipa e quanto spesso vota come la maggioranza di governo, anno per anno. Tutto è calcolato su ogni votazione elettronica della legislatura.</p>
+    </div>
+    <div class="card filters">
+      <div class="chips" id="forze-ramo" role="group" aria-label="Ramo del Parlamento"></div>
+      <div class="chips" id="party-chips" role="group" aria-label="Scegli un gruppo"></div>
+    </div>
+    <div class="grid-2">
+      <div class="card" id="party-card"></div>
+      <div class="card" id="party-conv"></div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <h3>Matrice di convergenza</h3>
+        <span class="src" id="matrix-src"></span>
+      </div>
+      <div class="tbl-scroll"><table class="matrix" id="matrix"></table></div>
+      <p class="note" style="margin-top:10px">Quota delle votazioni palesi in cui due gruppi hanno preso la stessa posizione (Sì, No o astensione). Molte votazioni sono quasi unanimi o procedurali, quindi anche gruppi lontani hanno spesso valori alti: conta il confronto tra coppie, non il numero assoluto. Sono esclusi i gruppi con meno di 30 votazioni.</p>
+    </div>
+  </section>
+
+  <!-- VOTI -->
+  <section class="view" id="v-voti">
+    <div class="view-head">
+      <h2>Tutte le votazioni della XIX legislatura</h2>
+      <p class="lede">Ogni votazione elettronica di Camera e Senato, comprese quelle su emendamenti, articoli e ordini del giorno, dalla più recente. Per ognuna: esito, posizione di ciascun gruppo e voto di ogni parlamentare.</p>
+    </div>
+    <details class="card" id="evidenza">
+      <summary>Votazioni in evidenza, con scheda di contesto <span class="src">(10 schede scritte e verificate a mano)</span></summary>
+      <div class="votes-list" id="evidenza-list" style="margin-top:14px"></div>
+    </details>
+    <div class="card filters" id="votes-filters"></div>
+    <div class="legend-row card" style="padding:12px 16px">
+      <span><i class="vote S">Sì</i> favorevole</span>
+      <span><i class="vote N">No</i> contrario</span>
+      <span><i class="vote A">Ast.</i> astenuto</span>
+      <span><i class="vote X">Diviso</i> gruppo spaccato a metà</span>
+      <span><i class="vote O">—</i> nessun membro ha votato</span>
+    </div>
+    <p class="note" id="votes-count"></p>
+    <div class="votes-list" id="votes-list"></div>
+    <button class="chip more" id="votes-more" hidden>Mostra altre 50</button>
+  </section>
+
+  <!-- PARLAMENTARI -->
+  <section class="view" id="v-parlamentari">
+    <div class="view-head">
+      <h2>Parlamentari</h2>
+      <p class="lede">Tutti i deputati e i senatori della legislatura, anche chi ha lasciato il seggio. Per ognuno: gruppo, presenze alle votazioni, voti diversi dal proprio gruppo e cambi di casacca. Clicca un nome per la scheda completa.</p>
+    </div>
+    <div class="card" id="parl-det" hidden></div>
+    <div class="card filters" id="parl-filters"></div>
+    <div class="card">
+      <div class="tbl-scroll"><table id="parl-table"></table></div>
+      <button class="chip more" id="parl-more" hidden style="margin-top:12px">Mostra altri 100</button>
+    </div>
+  </section>
+
+  <!-- CAMBI -->
+  <section class="view" id="v-cambi">
+    <div class="view-head">
+      <h2>Cambi di gruppo</h2>
+      <p class="lede">Parlamentari che hanno lasciato il gruppo con cui erano iscritti per passare a un altro o al Misto, dall'inizio della legislatura. È uno degli indicatori di coerenza più semplici da verificare.</p>
+    </div>
+    <div class="card filters" id="cambi-filters"></div>
+    <div class="grid-2">
+      <div class="card" id="cambi-list"></div>
+      <div class="card" id="cambi-saldi"></div>
+    </div>
+  </section>
+
+  <!-- GOVERNI -->
+  <section class="view" id="v-governi">
+    <div class="view-head">
+      <h2>Governi ed economia dal 1994</h2>
+      <p class="lede">I governi della Repubblica dal 1994 e l'andamento dei principali indicatori economici anno per anno. Scegli un indicatore e clicca un governo nella tabella per vederne la scheda.</p>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="ind-picker" id="ind-picker" role="group" aria-label="Indicatore"></div>
+      </div>
+      <div class="card-head" style="margin-bottom:4px">
+        <h3 id="chart-title"></h3>
+        <span class="src" id="chart-src"></span>
+      </div>
+      <div class="chart-box" id="chart"></div>
+      <p class="note" id="chart-note" style="margin-top:8px"></p>
+    </div>
+    <div class="card">
+      <div class="card-head"><h3>Altri dati molto citati</h3><span class="src">Ultimi valori ufficiali</span></div>
+      <div class="tiles">
+        <div class="tile"><span class="tile-label">Pressione fiscale 2025</span><span class="tile-value">42,9%</span><span class="tile-sub">del PIL, +0,7 punti sul 2024 (ISTAT, conti nazionali del 22/09/2026). <a href="https://www.pmi.it/economia/mercati/467695/pressione-fiscale-italia-istat.html" target="_blank" rel="noopener">Fonte</a></span></div>
+        <div class="tile"><span class="tile-label">Persone in povertà assoluta 2025</span><span class="tile-value">9,3%</span><span class="tile-sub">oltre 5,4 milioni; era 9,8% nel 2024 e 9,7% nel 2023 (ISTAT). <a href="https://www.istat.it/comunicato-stampa/la-poverta-in-italia-anno-2025/" target="_blank" rel="noopener">Fonte</a></span></div>
+        <div class="tile"><span class="tile-label">Famiglie in povertà assoluta 2025</span><span class="tile-value">8,0%</span><span class="tile-sub">poco più di 2,1 milioni; era 8,4% nel 2024 (ISTAT). <a href="https://www.istat.it/wp-content/uploads/2026/10/La-poverta-in-Italia-2025.pdf" target="_blank" rel="noopener">Fonte</a></span></div>
+      </div>
+      <p class="note" style="margin-top:10px">Prima di settembre 2026 l'ISTAT indicava per il 2025 una pressione fiscale del 43,1%: la differenza dipende dalla revisione generale dei conti nazionali, che ha alzato il PIL.</p>
+    </div>
+    <div class="card gov-card" id="gov-card"></div>
+    <div class="card">
+      <div class="card-head">
+        <h3>Tutti i governi a confronto</h3>
+        <span class="src">Clicca una riga per aprire la scheda</span>
+      </div>
+      <div class="tbl-scroll"><table id="gov-table"></table></div>
+    </div>
+    <p class="caveat">Ogni anno è attribuito al governo rimasto in carica per la maggior parte di quell'anno; i governi che non superano mai sei mesi in un anno solare non hanno anni attribuiti. Gli indicatori dipendono anche dal ciclo internazionale, dalla politica monetaria della BCE e dalle scelte dei governi precedenti: la tabella descrive cosa è successo durante un governo, non ne misura il merito.</p>
+  </section>
+
+  <!-- METODO -->
+  <section class="view" id="v-metodo">
+    <div class="view-head">
+      <h2>Fonti e metodo</h2>
+      <p class="lede">Da dove arriva ogni numero, ogni quanto si aggiorna e come sono calcolati gli indicatori.</p>
+    </div>
+    <div class="card prose" id="metodo"></div>
+  </section>
+
+  <p class="footer">Bussola Parlamentare · dati di Camera dei deputati (CC BY-SA 4.0) e Senato della Repubblica (CC BY 3.0), aggiornati ogni giorno. Nessuna valutazione politica: i dati sono riportati come pubblicati dalle istituzioni.</p>
+</main>
+<div id="tip" role="tooltip"></div>
+
+<script>
+/* ===================== DATI CURATI A MANO (verificati a novembre 2026) ===================== */
+const COAL = {
+  mag: { label: "Maggioranza", long: "Maggioranza (sostiene il Governo Meloni)", color: "var(--c-mag)" },
+  opp: { label: "Opposizioni", long: "Opposizioni", color: "var(--c-opp)" },
+  alt: { label: "Misto e altri", long: "Misto e altre componenti", color: "var(--c-alt)" }
+};
+
+/* Leader e capigruppo: verificati su cronache e pagine ufficiali tra luglio e novembre 2026 (fonti in LEADER_SRC) */
+const PARTIES = {
+  fdi:  { name: "Fratelli d'Italia", short: "FdI", coal: "mag", eu: "ECR – Conservatori e Riformisti europei",
+          leader: "Giorgia Meloni", cam: "Galeazzo Bignami", sen: "Lucio Malan" },
+  lega: { name: "Lega", short: "Lega", coal: "mag", eu: "PfE – Patrioti per l'Europa",
+          leader: "Matteo Salvini (segretario federale)", cam: "Riccardo Molinari", sen: "Marco Dreosto, dal 17/11/2026 (prima Massimiliano Romeo)" },
+  fi:   { name: "Forza Italia", short: "FI", coal: "mag", eu: "PPE – Partito Popolare Europeo",
+          leader: "Antonio Tajani (segretario)", cam: "Enrico Costa, dal 14/04/2026 (prima Paolo Barelli)", sen: "Stefania Craxi, da marzo 2026 (prima Maurizio Gasparri)" },
+  nm:   { name: "Noi Moderati", short: "NM", coal: "mag", eu: "Alle europee 2024 in lista comune con Forza Italia (PPE)", note: "Al Senato fa parte del gruppo Civici d'Italia – UDC – Noi Moderati – MAIE – Centro Popolare.",
+          leader: "Maurizio Lupi", cam: null, sen: "Michaela Biancofiore (gruppo Civici d'Italia, dal 2023)" },
+  pd:   { name: "Partito Democratico", short: "PD", coal: "opp", eu: "S&D – Socialisti e Democratici",
+          leader: "Elly Schlein (segretaria)", cam: "Chiara Braga", sen: "Francesco Boccia" },
+  m5s:  { name: "Movimento 5 Stelle", short: "M5S", coal: "opp", eu: "The Left – La Sinistra (dal 4 luglio 2024)",
+          leader: "Giuseppe Conte (presidente)", cam: "Riccardo Ricciardi", sen: "Luca Pirondini" },
+  avs:  { name: "Alleanza Verdi e Sinistra", short: "AVS", coal: "opp", eu: "Verdi/ALE (Europa Verde) e The Left (Sinistra Italiana)", note: "Gruppo autonomo alla Camera, componente del Misto al Senato.",
+          leader: "Angelo Bonelli e Nicola Fratoianni (co-leader)", cam: "Luana Zanella", sen: "Peppe De Cristofaro (presidente del gruppo Misto)" },
+  az:   { name: "Azione", short: "Azione", coal: "opp", eu: "Nessun seggio alle europee 2024", note: "Fino al 2023 Azione e Italia Viva formavano un unico gruppo alla Camera.",
+          leader: "Carlo Calenda", cam: "Matteo Richetti", sen: "Nessun gruppo: componente del Misto (Calenda, Lombardo)" },
+  iv:   { name: "Italia Viva", short: "IV", coal: "opp", eu: "Nessun seggio alle europee 2024", note: "Fino al 2023 Azione e Italia Viva formavano un unico gruppo alla Camera.",
+          leader: "Matteo Renzi", cam: "Maria Elena Boschi", sen: "Raffaella Paita" },
+  pe:   { name: "+Europa", short: "+Europa", coal: "opp", eu: "Nessun seggio alle europee 2024", note: "Componente del gruppo Misto alla Camera; nessun senatore.",
+          leader: "Riccardo Magi (segretario)", cam: "Nessun gruppo: componente del Misto", sen: "Nessun senatore" },
+  fn:   { name: "Futuro Nazionale Vannacci – Free", short: "FN", coal: "alt", eu: "—", note: "Componente del Misto alla Camera autorizzata il 27/05/2026, formata in gran parte da deputati usciti dalla Lega. Collocazione rispetto al governo non classificata.",
+          leader: "Roberto Vannacci", cam: "Nessun gruppo: componente del Misto", sen: null },
+  ml:   { name: "Minoranze linguistiche e autonomie", short: "Min. ling.", coal: "alt", eu: "—", note: "Alla Camera componente del Misto (4 deputati); al Senato gruppo Per le Autonomie (SVP-PATT, Campobase).",
+          leader: null, cam: "Nessun gruppo: componente del Misto", sen: "Julia Unterberger (Per le Autonomie; ultimo dato verificato: 2022)" },
+  scn:  { name: "Sud chiama Nord", short: "ScN", coal: "alt", eu: "—", note: "Componente del Misto alla Camera autorizzata il 12/10/2026.",
+          leader: null, cam: "Nessun gruppo: componente del Misto", sen: null }
+};
+const LEADER_SRC = [
+  ["Open, Costa capogruppo FI", "https://www.open.online/2026/04/14/forza-italia-capogruppo-enrico-costa-via-barelli-cosa-succede/"],
+  ["Il Giorno, Dreosto capogruppo Lega", "https://www.ilgiorno.it/politica/lega-dreosto-nuovo-capogruppo-cgojbh7d"],
+  ["Il Fatto Quotidiano, Craxi", "https://www.ilfattoquotidiano.it/2026/11/19/decreto-scuola-emendamento-ebook-senato-notizie/8576922/"],
+  ["senato.it, gruppo FdI", "https://www.senato.it/composizione/gruppi-parlamentari/riepilogo-della-composizione/composizione?did=85"],
+  ["Quotidiano.net, Bignami", "https://www.quotidiano.net/politica/bignami-mattarella-complotto-quirinale-meloni-a7zmsfah"],
+  ["Libero, Molinari", "https://www.liberoquotidiano.it/news/libero-video/48553365/legge-elettorale-molinari-non-ho-motivo-pensare-leghisti-votato-contro.amp"],
+  ["AGI, Braga", "https://www.agi.it/politica/news/2026-06-24/legge-elettorale-camera-37702999/"],
+  ["Sky TG24, Boccia", "https://tg24.sky.it/politica/2026/11/19/dl-scuola-emendamento-e-book-maggioranza-senato"],
+  ["Quotidiano.net, Ricciardi", "https://www.quotidiano.net/politica/ricciardi-m5s-gazebo-e-voto-f8c0fc38"],
+  ["Quotidiano.net, Pirondini", "https://www.quotidiano.net/politica/libri-digitali-emendamento-senato-forza-italia-manovra-e3p2ejh2"],
+  ["L'Espresso, Zanella", "https://lespresso.it/c/politica/2026/08/03/chat-delmastro-protesta-movimento-5-stelle-striscioni-video/63862"],
+  ["Quotidiano.net, Renzi su Paita e Boschi", "https://www.quotidiano.net/politica/renzi-finita-la-stagione-dei-veti-parteciperemo-a-primarie-aperte-altrimenti-staremo-con-elly-cmtpwlo8"],
+  ["La Notizia, Richetti", "https://www.lanotiziagiornale.it/?p=417402"],
+  ["Wikipedia, Civici d'Italia", "https://en.wikipedia.org/wiki/Civics_of_Italy"],
+  ["Quotidiano.net, Lupi", "https://www.quotidiano.net/politica/il-dossier-legge-elettorale-trattative-079ad071"],
+  ["Quotidiano.net, Fratoianni e Bonelli", "https://www.quotidiano.net/politica/fratoianni-intervista-foto-w2s5ch18"],
+  ["L'Espresso, Magi", "https://www.lespresso.it/c/politica/2026/7/16/legge-elettorale-voto-finale-camera-dichiarazioni-politiche-conte-schlein-maggioranza-opposizione/63511"],
+  ["AGI 2022, Unterberger", "https://www.agi.it/politica/news/2022-10-18/definito-puzzle-capigruppo-camere-tutti-gli-eletti-18492106/"]
+];
+const MAIN_PARTIES = ["fdi", "lega", "fi", "nm", "pd", "m5s", "avs", "az", "iv", "pe"];
+
+const EU_SRC = { url: "https://results.elections.europa.eu/it/strumenti/widget-paese/italia/2024-2029/", label: "Parlamento europeo, risultati 2024–2029" };
+
+/* Voti: S = sì, N = no, A = astenuto, null = non verificato, "-" = non presente in quel ramo */
+const VOTES = [
+  {
+    id: "ebook", title: "Libri di testo digitali a metà prezzo (emendamento al dl Scuola)", chamber: "Senato", date: "2026-11-19",
+    rilievo: "minore", tema: "Scuola e università",
+    kind: "Emendamento al decreto-legge 170/2026, prima lettura", outcome: "Approvato",
+    desc: "Emendamento Bucalo (FdI): gli editori devono offrire i libri di testo scolastici e universitari anche in versione digitale, a un prezzo inferiore di almeno il 50% rispetto al cartaceo.",
+    tally: { S: 84, N: 76, A: 1 },
+    pos: { fdi: "S", lega: "S", nm: "S", az: "S", fi: "N", pd: "N", m5s: "N", iv: "N", avs: "N", ml: "N", pe: "-" },
+    extra: "La maggioranza si è divisa: Forza Italia ha votato con le opposizioni, Azione con il resto del centrodestra. In commissione Bilancio il parere era stato bocciato 12 a 11 e il governo si è poi rimesso all'Aula. Nel gruppo Per le Autonomie si è astenuta la senatrice Unterberger. Il decreto nel suo insieme è passato al Senato con 80 sì, 46 no e 1 astenuto e ora va alla Camera.",
+    sources: [
+      ["Secolo d'Italia, voto per gruppo", "https://www.secoloditalia.it/2026/11/vittoria-di-fdi-al-senato-ok-allemendamento-sui-libri-digitali-scontati-la-sinistra-vota-contro-e-preferisce-la-polemica-al-risparmio/"],
+      ["Il Fatto Quotidiano, 19/11/2026", "https://www.ilfattoquotidiano.it/2026/11/19/decreto-scuola-emendamento-ebook-senato-notizie/8576922/"],
+      ["Quotidiano.net, 19/11/2026", "https://www.quotidiano.net/politica/libri-digitali-emendamento-senato-forza-italia-manovra-e3p2ejh2"],
+      ["Sky TG24, commissione Bilancio", "https://tg24.sky.it/politica/2026/11/19/dl-scuola-emendamento-e-book-maggioranza-senato"]
+    ]
+  },
+  {
+    id: "patrocinio", title: "Gratuito patrocinio per le vittime del lavoro e i loro familiari", chamber: "Camera", date: "2026-10-22",
+    rilievo: "minore", tema: "Lavoro",
+    kind: "Proposta di legge, prima lettura", outcome: "Approvata all'unanimità",
+    desc: "Assistenza legale a carico dello Stato per le vittime di incidenti sul lavoro e per i loro familiari. Il testo passa al Senato.",
+    tally: { S: 220, N: 0, A: null },
+    pos: { fdi: "S", lega: "S", fi: "S", nm: "S", pd: "S", m5s: "S", avs: "S", az: "S", iv: "S", pe: "S" },
+    extra: "Voto unanime: nessun deputato contrario.",
+    sources: [["Soldionline (ANSA), 22/10/2026", "https://www.soldionline.it/?p=178763"]]
+  },
+  {
+    id: "fuorisede", title: "Voto per i fuorisede (emendamento alla legge elettorale)", chamber: "Camera", date: "2026-07-15",
+    rilievo: "minore", tema: "Legge elettorale",
+    kind: "Emendamento", outcome: "Approvato all'unanimità",
+    desc: "Chi vive lontano dal Comune di residenza per studio, lavoro o cure mediche potrà votare nel Comune di domicilio, iscrivendosi a un apposito elenco.",
+    tally: { S: 353, N: 0, A: null },
+    pos: { fdi: "S", lega: "S", fi: "S", nm: "S", pd: "S", m5s: "S", avs: "S", az: "S", iv: "S", pe: "S" },
+    extra: "Emendamento a prima firma Fabio Roscani (FdI), riformulato dopo una trattativa con le opposizioni. Un'altra fonte riporta 349 voti favorevoli. La norma si applicherà solo con l'approvazione definitiva della nuova legge elettorale.",
+    sources: [
+      ["Open, 15/07/2026", "https://www.open.online/2026/07/15/legge-elettorale-si-bipartisan-voto-fuori-sede-dopo-trattative-cosa-cambia/"],
+      ["L'Espresso, 15/07/2026", "https://lespresso.it/c/politica/2026/7/15/voto-fuorisede-legge-elettorale-accordo-emendamento-roscani/63502"]
+    ]
+  },
+  {
+    id: "preferenze", title: "Preferenze nella legge elettorale (emendamento FdI)", chamber: "Camera", date: "2026-07-15", dateLabel: "luglio 2026",
+    rilievo: "minore", tema: "Legge elettorale", secret: true,
+    kind: "Emendamento, scrutinio segreto", outcome: "Respinto per un voto",
+    desc: "Prevedeva il capolista bloccato e fino a tre preferenze con alternanza di genere.",
+    tally: { S: 187, N: 188, A: null },
+    pos: {},
+    extra: "Con lo scrutinio segreto non si sa come abbiano votato i singoli deputati né i gruppi, quindi questo voto non entra nel calcolo della convergenza. Le opposizioni hanno attribuito la bocciatura a una trentina di franchi tiratori della maggioranza.",
+    sources: [["L'Espresso, 16/07/2026", "https://lespresso.it/c/politica/2026/7/16/legge-elettorale-cosa-prevede-stabilicum-approvazione-camera-preferenze-premio-maggioranza-voto-fuorisede/63512"]]
+  },
+  {
+    id: "fiducia", title: "Fiducia al Governo Meloni", chamber: "Camera", date: "2022-10-25", rilievo: "grande", tema: "Istituzioni",
+    kind: "Mozione di fiducia", outcome: "Approvata",
+    desc: "Primo voto di fiducia al nuovo governo dopo le dichiarazioni programmatiche della presidente del Consiglio.",
+    tally: { S: 235, N: 154, A: 5 },
+    pos: { fdi: "S", lega: "S", fi: "S", nm: "S", pd: "N", m5s: "N", avs: "N", az: "N", iv: "N", pe: null, ml: "A", scn: "A" },
+    extra: "Al Senato, il 26/10/2022: 115 sì, 79 no, 5 astenuti. Azione e Italia Viva votavano allora come gruppo unico. La posizione di Azione e IV è ricavata dal totale dei contrari: senza i loro voti i no non arrivano a 154.",
+    sources: [
+      ["Open, 25/10/2022", "https://www.open.online/2022/10/25/governo-meloni-si-fiducia-camera-deputati/"],
+      ["RSI, astensioni", "https://www.rsi.ch/info/mondo/Meloni-ha-la-fiducia-della-Camera--1802802.html"],
+      ["Sky TG24, Senato", "https://tg24.sky.it/politica/2022/10/26/governo-meloni-fiducia-ultime-notizie"]
+    ]
+  },
+  {
+    id: "mes", title: "Ratifica della riforma del MES", chamber: "Camera", date: "2023-12-21", rilievo: "grande", tema: "Economia ed Europa",
+    kind: "Proposta di legge di ratifica", outcome: "Respinta",
+    desc: "Autorizzazione alla ratifica dell'accordo che modifica il trattato sul Meccanismo europeo di stabilità.",
+    tally: { S: 72, N: 184, A: 44 },
+    pos: { fdi: "N", lega: "N", fi: "A", nm: "A", pd: "S", m5s: "N", avs: "A", az: "S", iv: "S", pe: "S" },
+    extra: "Uno dei pochi voti in cui sia la maggioranza sia le opposizioni si sono divise.",
+    sources: [
+      ["AGI, 21/12/2023", "https://www.agi.it/politica/news/2023-12-21/camera-boccia-mes-maggioranza-divisa-24538624/"],
+      ["Sky TG24", "https://tg24.sky.it/politica/2023/12/21/mes-camera"]
+    ]
+  },
+  {
+    id: "autonomia", title: "Autonomia differenziata (ddl Calderoli)", chamber: "Camera", date: "2024-06-19", rilievo: "grande", tema: "Istituzioni",
+    kind: "Approvazione definitiva", outcome: "Approvata · Legge 86/2024",
+    desc: "Disposizioni per l'attuazione dell'autonomia differenziata delle Regioni a statuto ordinario (art. 116, terzo comma, Costituzione).",
+    tally: { S: 172, N: 99, A: 1 },
+    pos: { fdi: "S", lega: "S", fi: "S", nm: "S", pd: "N", m5s: "N", avs: "N", iv: "N", az: null, pe: null },
+    extra: "Le fonti consultate confermano il voto contrario di PD, M5S, AVS e Italia Viva; per Azione e +Europa il dato va verificato sul tabulato nominativo.",
+    sources: [
+      ["Senato, scheda ddl", "https://www.senato.it/leggi-e-documenti/disegni-di-legge/scheda-ddl?did=57887"],
+      ["Avvenire, 19/06/2024", "https://www.avvenire.it/attualita/lautonomia-differenziata-e-legge-zuppi-non-ci-hanno-preso-sul-serio_78103"],
+      ["LaPresse, 20/06/2024", "https://www.lapresse.it/politica/2024/06/20/autonomia-e-legge-tra-le-proteste-lega-esulta-opposizioni-chiedono-referendum/"]
+    ]
+  },
+  {
+    id: "premierato", title: "Premierato: elezione diretta del Presidente del Consiglio", chamber: "Senato", date: "2024-06-18", rilievo: "grande", tema: "Istituzioni",
+    kind: "Riforma costituzionale, prima deliberazione", outcome: "Approvata in prima lettura",
+    desc: "Disegno di legge costituzionale che introduce l'elezione diretta del Presidente del Consiglio. Dopo il Senato il testo è passato alla Camera.",
+    tally: { S: 109, N: 77, A: 1 },
+    pos: { fdi: "S", lega: "S", fi: "S", nm: "S", pd: "N", m5s: "N", avs: "N", iv: "N", az: "N", pe: "-" },
+    extra: "Secondo le cronache hanno votato contro tutti i partiti di opposizione, compresa Italia Viva.",
+    sources: [
+      ["Il Post, 18/06/2024", "https://www.ilpost.it/2024/06/18/senato-approvato-ddl-premierato/"],
+      ["Domani, 18/06/2024", "https://www.editorialedomani.it/politica/italia/premierato-approvato-senato-voto-testo-passa-camera-elezione-diretta-premier-ctuct06p"]
+    ]
+  },
+  {
+    id: "carriere", title: "Separazione delle carriere dei magistrati", chamber: "Senato", date: "2025-10-30", rilievo: "grande", tema: "Giustizia",
+    kind: "Riforma costituzionale, approvazione definitiva", outcome: "Approvata, poi respinta al referendum",
+    desc: "Separazione delle carriere tra giudici e pubblici ministeri, due CSM e Alta Corte disciplinare.",
+    tally: { S: 112, N: 59, A: 9 },
+    pos: { fdi: "S", lega: "S", fi: "S", nm: "S", az: "S", iv: "A", pd: "N", m5s: "N", avs: "N", pe: "-" },
+    extra: "Senza la maggioranza dei due terzi si è andati al referendum confermativo del 22–23 marzo 2026: ha vinto il No con oltre il 53% dei voti e la riforma non è entrata in vigore.",
+    sources: [
+      ["Pagella Politica, 30/10/2025", "https://pagellapolitica.it/articoli/senato-approvazione-definitiva-riforma-separazione-carriere"],
+      ["Il Post, referendum 23/03/2026", "https://www.ilpost.it/2026/03/23/referendum-costituzionale-giustizia-chi-ha-vinto-no/"]
+    ]
+  },
+  {
+    id: "ucraina", title: "Decreto Ucraina 2026 (dl 201/2025)", chamber: "Camera", date: "2026-02-11", rilievo: "grande", tema: "Esteri e difesa",
+    kind: "Conversione in legge, prima lettura", outcome: "Approvato",
+    desc: "Proroga al 31/12/2026 dell'autorizzazione a cedere mezzi, materiali ed equipaggiamenti alle autorità ucraine.",
+    tally: { S: 229, N: 40, A: null },
+    pos: { fdi: "S", lega: "S", fi: "S", nm: "S", pd: "S", iv: "S", az: "S", pe: "S", m5s: "N", avs: "N", fn: "N" },
+    extra: "Sul voto di fiducia che lo ha preceduto PD, IV, Azione e +Europa hanno votato contro. Contrari al decreto anche i tre deputati poi confluiti in Futuro Nazionale. Approvato in via definitiva dal Senato il 25/02/2026 con voto di fiducia (106 sì, 57 no, 2 astenuti).",
+    sources: [
+      ["Camera, scheda dl 201/2025", "https://temi.camera.it/leg19/esteri_governance_economica_ue/dae/pace-giustizia-e-istituzioni-solide/provvedimenti.html"],
+      ["Quotidiano.net", "https://www.quotidiano.net/politica/decreto-armi-ucraina-la-camera-approva-vannacciani-votano-la-fiducia-gihjjr35"],
+      ["Il Giornale, Senato", "https://www.ilgiornale.it/news/politica-internazionale/libera-definitivo-dl-ucraina-senato-fiducia-legge-2626118.html"]
+    ]
+  }
+];
+
+const GOVS = [
+  { name: "Berlusconi I", pm: "Silvio Berlusconi", start: "1994-05-10", end: "1995-01-16", leg: "XII", support: "Centrodestra: Forza Italia, Alleanza Nazionale, Lega Nord, CCD" },
+  { name: "Dini", pm: "Lamberto Dini", start: "1995-01-17", end: "1996-05-16", leg: "XII", support: "Governo tecnico, sostenuto tra gli altri da PDS, PPI e Lega Nord" },
+  { name: "Prodi I", pm: "Romano Prodi", start: "1996-05-17", end: "1998-10-20", leg: "XIII", support: "L'Ulivo (PDS, PPI, Rinnovamento Italiano, Verdi e altri), con appoggio esterno di Rifondazione Comunista" },
+  { name: "D'Alema I", pm: "Massimo D'Alema", start: "1998-10-21", end: "1999-12-21", leg: "XIII", support: "Centrosinistra (DS, PPI, UDR, PdCI, Verdi e altri)" },
+  { name: "D'Alema II", pm: "Massimo D'Alema", start: "1999-12-22", end: "2000-04-25", leg: "XIII", support: "Centrosinistra (DS, PPI, Democratici, PdCI, Verdi, UDEUR e altri)" },
+  { name: "Amato II", pm: "Giuliano Amato", start: "2000-04-26", end: "2001-06-10", leg: "XIII", support: "Centrosinistra (DS, PPI, Democratici, PdCI, Verdi, UDEUR e altri)" },
+  { name: "Berlusconi II", pm: "Silvio Berlusconi", start: "2001-06-11", end: "2005-04-22", leg: "XIV", support: "Casa delle Libertà (Forza Italia, AN, Lega Nord, UDC e altri)" },
+  { name: "Berlusconi III", pm: "Silvio Berlusconi", start: "2005-04-23", end: "2006-05-16", leg: "XIV", support: "Casa delle Libertà (Forza Italia, AN, Lega Nord, UDC e altri)" },
+  { name: "Prodi II", pm: "Romano Prodi", start: "2006-05-17", end: "2008-05-06", leg: "XV", support: "L'Unione (DS, Margherita, Rifondazione Comunista, Rosa nel Pugno, PdCI, IdV, Verdi, UDEUR)" },
+  { name: "Berlusconi IV", pm: "Silvio Berlusconi", start: "2008-05-07", end: "2011-11-15", leg: "XVI", support: "Centrodestra (Popolo della Libertà, Lega Nord, MpA)" },
+  { name: "Monti", pm: "Mario Monti", start: "2011-11-16", end: "2013-04-27", leg: "XVI", support: "Governo tecnico, sostenuto da PdL, PD, UdC e altri" },
+  { name: "Letta", pm: "Enrico Letta", start: "2013-04-28", end: "2014-02-21", leg: "XVII", support: "Larghe intese (PD, PdL poi NCD, Scelta Civica, UdC e altri)" },
+  { name: "Renzi", pm: "Matteo Renzi", start: "2014-02-22", end: "2016-12-11", leg: "XVII", support: "PD, NCD, Scelta Civica, UdC e altri" },
+  { name: "Gentiloni", pm: "Paolo Gentiloni", start: "2016-12-12", end: "2018-05-31", leg: "XVII", support: "PD, Alternativa Popolare e altri" },
+  { name: "Conte I", pm: "Giuseppe Conte", start: "2018-06-01", end: "2019-09-04", leg: "XVIII", support: "Movimento 5 Stelle e Lega" },
+  { name: "Conte II", pm: "Giuseppe Conte", start: "2019-09-05", end: "2021-02-12", leg: "XVIII", support: "Movimento 5 Stelle, PD, LeU, Italia Viva" },
+  { name: "Draghi", pm: "Mario Draghi", start: "2021-02-13", end: "2022-10-21", leg: "XVIII", support: "Unità nazionale (M5S, Lega, PD, Forza Italia, IV, LeU e altri); Fratelli d'Italia all'opposizione" },
+  { name: "Meloni", pm: "Giorgia Meloni", start: "2022-10-22", end: null, leg: "XIX", support: "Centrodestra (Fratelli d'Italia, Lega, Forza Italia, Noi Moderati)" }
+];
+const GOV_SRC = { url: "https://www.senato.it/legislature/repubblica/governi-della-repubblica", label: "senato.it, Elenco storico dei Governi" };
+
+/* Serie annuali. Fonti nel campo src di ogni indicatore. */
+const Y0 = 1993, Y1 = 2025;
+const SERIES = {
+  pil: { // OECD via FRED NAEXKP01ITA657S, agg. 15/10/2026
+    1993:-0.8528,1994:2.1510,1995:2.8868,1996:1.1347,1997:1.9257,1998:1.8044,1999:1.6780,2000:3.8821,2001:2.0064,2002:0.2699,
+    2003:0.0666,2004:1.4740,2005:0.7624,2006:1.7995,2007:1.4623,2008:-1.0231,2009:-5.3052,2010:1.5292,2011:0.7244,2012:-3.0477,
+    2013:-1.5982,2014:-0.0153,2015:1.0364,2016:1.4700,2017:1.7007,2018:0.9971,2019:0.5680,2020:-8.7211,2021:9.2152,2022:4.9054,
+    2023:1.0007,2024:1.0648,2025:0.6177 },
+  infl: { // World Bank via FRED FPCPITOTLZGITA, agg. 13/10/2026
+    1993:4.6267,1994:4.0518,1995:5.2354,1996:4.0070,1997:2.0431,1998:1.9551,1999:1.6635,2000:2.5377,2001:2.7852,2002:2.4653,
+    2003:2.6726,2004:2.2067,2005:1.9853,2006:2.0908,2007:1.8297,2008:3.3478,2009:0.7748,2010:1.5255,2011:2.7806,2012:3.0414,
+    2013:1.2200,2014:0.2411,2015:0.0388,2016:-0.0941,2017:1.2265,2018:1.1375,2019:0.6112,2020:-0.1377,2021:1.8738,2022:8.2013,
+    2023:5.6222,2024:0.9824,2025:1.5317 },
+  debito: { // FMI WEO apr. 2025 (1995–2021), ISTAT notifica 21/10/2026 (2022–2025)
+    1995:119.088,1996:118.896,1997:116.491,1998:113.887,1999:113.059,2000:108.743,2001:108.513,2002:105.947,2003:105.141,2004:104.742,
+    2005:106.176,2006:106.253,2007:103.454,2008:105.788,2009:116.121,2010:118.737,2011:119.106,2012:125.870,2013:131.816,2014:134.755,
+    2015:134.746,2016:134.195,2017:133.689,2018:134.138,2019:133.823,2020:154.288,2021:145.735,2022:138.4,2023:134.0,2024:134.3,2025:136.7 },
+  deficit: { // indebitamento netto in % del PIL, segno positivo = deficit. FMI WEO apr. 2025 (1995–2021), ISTAT (2022–2025)
+    1995:7.199,1996:6.608,1997:2.980,1998:2.986,1999:1.775,2000:2.420,2001:3.181,2002:2.880,2003:3.226,2004:3.461,
+    2005:4.099,2006:3.605,2007:1.326,2008:2.584,2009:5.057,2010:4.161,2011:3.524,2012:2.985,2013:2.875,2014:2.819,
+    2015:2.459,2016:2.405,2017:2.509,2018:2.192,2019:1.450,2020:9.379,2021:8.879,2022:8.1,2023:7.1,2024:3.4,2025:3.1 },
+  disocc: { // OECD 15–64 via FRED LRUN64TTITA156S, agg. 15/05/2026
+    1998:12.000,1999:11.550,2000:10.700,2001:9.650,2002:9.100,2003:8.775,2004:8.100,2005:7.825,2006:6.875,2007:6.175,
+    2008:6.800,2009:7.966,2010:8.626,2011:8.627,2012:11.013,2013:12.531,2014:13.031,2015:12.171,2016:11.915,2017:11.440,
+    2018:10.767,2019:10.114,2020:9.516,2021:9.725,2022:8.225,2023:7.800,2024:6.650,2025:6.300 },
+  occ: { // OECD 15–64 via FRED LREM64TTITA156N, agg. 15/05/2026
+    1998:51.925,1999:52.675,2000:53.700,2001:54.800,2002:55.550,2003:56.100,2004:57.725,2005:57.575,2006:58.325,2007:58.575,
+    2008:58.650,2009:56.900,2010:56.250,2011:56.350,2012:56.075,2013:54.950,2014:55.275,2015:56.025,2016:57.050,2017:57.875,
+    2018:58.500,2019:59.050,2020:57.450,2021:58.250,2022:60.150,2023:61.475,2024:62.200,2025:62.525 },
+  pilpc: { // World Bank, PIL pro capite a prezzi costanti (dollari USA 2010) via FRED NYGDPPCAPKDITA, agg. 07/07/2026
+    1993:27987,1994:28584,1995:29408,1996:29796,1997:30353,1998:30892,1999:31405,2000:32610,2001:33244,2002:33267,
+    2003:33110,2004:33349,2005:33408,2006:33873,2007:34160,2008:33551,2009:31587,2010:31929,2011:32040,2012:30953,
+    2013:30330,2014:30325,2015:30640,2016:31078,2017:31636,2018:31964,2019:32180,2020:29470,2021:32268,2022:33892,
+    2023:34222,2024:34508,2025:34716 },
+  giovani: { // OECD disoccupazione 15–24 anni via FRED LRHU24TTITA156S, agg. 15/05/2026
+    1993:27.125,1994:28.700,1995:29.867,1996:29.850,1997:29.608,1998:29.150,1999:27.975,2000:26.133,2001:23.117,2002:22.042,
+    2003:23.600,2004:23.567,2005:24.075,2006:21.842,2007:20.400,2008:21.217,2009:25.308,2010:27.958,2011:29.033,2012:35.242,
+    2013:40.025,2014:42.642,2015:40.333,2016:37.725,2017:34.767,2018:32.267,2019:29.142,2020:29.533,2021:29.858,2022:23.650,
+    2023:22.733,2024:20.300,2025:20.483 },
+  femm: { // OECD tasso di occupazione femminile 15–64 via FRED LREM64FEITA156S, agg. 15/05/2026
+    1998:37.250,1999:38.275,2000:39.550,2001:41.100,2002:42.025,2003:42.650,2004:45.450,2005:45.375,2006:46.350,2007:46.625,
+    2008:47.250,2009:46.150,2010:45.875,2011:46.250,2012:46.775,2013:46.250,2014:46.650,2015:47.025,2016:48.050,2017:48.900,
+    2018:49.525,2019:50.175,2020:48.425,2021:49.425,2022:51.125,2023:52.525,2024:53.275,2025:53.750 },
+  btp: { // OECD rendimento titoli di Stato a 10 anni, Italia, media annua, via FRED IRLTLT01ITA156N, agg. 15/05/2026
+    1993:11.187,1994:10.519,1995:12.206,1996:9.401,1997:6.861,1998:4.882,1999:4.728,2000:5.575,2001:5.189,2002:5.034,
+    2003:4.248,2004:4.259,2005:3.555,2006:4.046,2007:4.487,2008:4.681,2009:4.311,2010:4.036,2011:5.423,2012:5.493,
+    2013:4.316,2014:2.893,2015:1.714,2016:1.486,2017:2.113,2018:2.610,2019:1.952,2020:1.168,2021:0.811,2022:3.157,
+    2023:4.283,2024:3.707,2025:3.589 },
+  bund: { // OECD rendimento titoli di Stato a 10 anni, Germania, via FRED IRLTLT01DEA156N, agg. 15/10/2026
+    1993:6.496,1994:6.884,1995:6.851,1996:6.215,1997:5.640,1998:4.574,1999:4.491,2000:5.264,2001:4.797,2002:4.784,
+    2003:4.071,2004:4.037,2005:3.354,2006:3.764,2007:4.217,2008:3.985,2009:3.222,2010:2.744,2011:2.609,2012:1.495,
+    2013:1.571,2014:1.163,2015:0.495,2016:0.091,2017:0.316,2018:0.396,2019:-0.254,2020:-0.511,2021:-0.374,2022:1.143,
+    2023:2.435,2024:2.321,2025:2.609 },
+  occupati: { // OECD occupati 15–64 (persone) via FRED LFEM64TTITA647N; 2025 = media dei quattro trimestri (LFEM64TTITQ647N)
+    1998:20090680,1999:20357350,2000:20752470,2001:21169220,2002:21477900,2003:21709970,2004:22019880,2005:22060430,2006:22388280,2007:22517400,
+    2008:22698600,2009:22146500,2010:21961250,2011:22036750,2012:21891000,2013:21420250,2014:21458250,2015:21634250,2016:21937500,2017:22161250,
+    2018:22332750,2019:22442750,2020:21721000,2021:21849180,2022:22412470,2023:22834950,2024:23150030,2025:23251150 }
+};
+
+SERIES.spread = {};
+Object.keys(SERIES.btp).forEach(y => { if (SERIES.bund[y] != null) SERIES.spread[y] = Math.round((SERIES.btp[y] - SERIES.bund[y]) * 100); });
+
+const IND_GROUPS = [
+  ["Crescita e redditi", ["pil", "pilpc"]],
+  ["Prezzi e mercati", ["infl", "spread", "btp"]],
+  ["Conti pubblici", ["debito", "deficit"]],
+  ["Lavoro", ["disocc", "giovani", "occ", "femm", "occupati"]]
+];
+const INDICATORS = {
+  pilpc: { label: "PIL pro capite", title: "PIL pro capite a prezzi costanti (dollari USA 2010)", unit: " $", type: "line", signed: false, dec: 0,
+    src: ["Banca Mondiale, World Development Indicators (via FRED, agg. 07/07/2026)", "https://fred.stlouisfed.org/data/NYGDPPCAPKDITA"],
+    note: "Ricchezza prodotta per abitante, al netto dell'inflazione. È il modo più diretto per confrontare il tenore di vita medio tra anni diversi." },
+  spread: { label: "Spread BTP-Bund", title: "Spread BTP-Bund a 10 anni (punti base, media annua)", unit: " pb", type: "line", signed: false, dec: 0,
+    src: ["Elaborazione su rendimenti OCSE di Italia e Germania (via FRED)", "https://fred.stlouisfed.org/data/IRLTLT01ITA156N"],
+    note: "Differenza tra il rendimento dei titoli di Stato italiani e tedeschi a 10 anni, calcolata sulle medie annue: i picchi giornalieri, come quelli della crisi del 2011, sono molto più alti di questi valori." },
+  btp: { label: "Rendimento BTP", title: "Rendimento dei titoli di Stato italiani a 10 anni (media annua)", unit: "%", type: "line", signed: false, dec: 2,
+    src: ["OCSE, Main Economic Indicators (via FRED, agg. 15/05/2026)", "https://fred.stlouisfed.org/data/IRLTLT01ITA156N"],
+    note: "Indica quanto costa allo Stato indebitarsi a lungo termine." },
+  giovani: { label: "Disoccupazione giovanile", title: "Tasso di disoccupazione giovanile, 15–24 anni", unit: "%", type: "line", signed: false, dec: 1,
+    src: ["OCSE, Infra-Annual Labour Statistics (via FRED, agg. 15/05/2026)", "https://fred.stlouisfed.org/data/LRHU24TTITA156S"],
+    note: "Quota di giovani tra 15 e 24 anni che cercano lavoro senza trovarlo, sul totale dei giovani attivi. I valori prima del 2004 sono ricostruiti dall'OCSE." },
+  femm: { label: "Occupazione femminile", title: "Tasso di occupazione femminile, 15–64 anni", unit: "%", type: "line", signed: false, dec: 1,
+    src: ["OCSE, Infra-Annual Labour Statistics (via FRED, agg. 15/05/2026)", "https://fred.stlouisfed.org/data/LREM64FEITA156S"],
+    note: "Quota di donne tra 15 e 64 anni che lavorano. Serie disponibile dal 1998; discontinuità di indagine nel 2004." },
+  pil: { label: "PIL", title: "Crescita del PIL reale", unit: "%", type: "bar", signed: true, dec: 1,
+    src: ["OCSE, Main Economic Indicators (via FRED, agg. 15/10/2026)", "https://fred.stlouisfed.org/data/NAEXKP01ITA657S.txt"],
+    note: "Variazione percentuale del PIL a prezzi costanti rispetto all'anno precedente. Include la revisione dei conti nazionali ISTAT di settembre 2026." },
+  infl: { label: "Inflazione", title: "Inflazione, prezzi al consumo", unit: "%", type: "line", signed: false, dec: 1,
+    src: ["Banca Mondiale, World Development Indicators (via FRED, agg. 13/10/2026)", "https://fred.stlouisfed.org/data/FPCPITOTLZGITA"],
+    note: "Variazione media annua dell'indice dei prezzi al consumo." },
+  debito: { label: "Debito/PIL", title: "Debito pubblico in % del PIL", unit: "%", type: "line", signed: false, dec: 1,
+    src: ["FMI, World Economic Outlook apr. 2025 (1995–2021); ISTAT, notifica del 21/10/2026 (2022–2025)", "https://www.istat.it/wp-content/uploads/2026/10/EN_Notifica-21_10_2026.pdf"],
+    note: "Debito lordo delle Amministrazioni pubbliche a fine anno. Dal 2022 dati ISTAT/Banca d'Italia più recenti: il passaggio di fonte può creare piccoli scarti con gli anni precedenti." },
+  deficit: { label: "Deficit/PIL", title: "Deficit pubblico in % del PIL (indebitamento netto)", unit: "%", type: "line", signed: false, dec: 1,
+    src: ["FMI, World Economic Outlook apr. 2025 (1995–2021); ISTAT, notifica del 21/10/2026 (2022–2025)", "https://fred.stlouisfed.org/data/GGNLBAITA188N"],
+    note: "Valori positivi indicano un disavanzo. La soglia del Patto di stabilità è il 3%." },
+  disocc: { label: "Disoccupazione", title: "Tasso di disoccupazione, 15–64 anni", unit: "%", type: "line", signed: false, dec: 1,
+    src: ["OCSE, Infra-Annual Labour Statistics (via FRED, agg. 15/05/2026)", "https://fred.stlouisfed.org/data/LRUN64TTITA156S"],
+    note: "Serie disponibile dal 1998. Nel 2004 l'ISTAT ha rinnovato l'indagine sulle forze di lavoro: confronti a cavallo di quell'anno vanno letti con cautela." },
+  occ: { label: "Tasso di occupazione", title: "Tasso di occupazione, 15–64 anni", unit: "%", type: "line", signed: false, dec: 1,
+    src: ["OCSE, Infra-Annual Labour Statistics (via FRED, agg. 15/05/2026)", "https://fred.stlouisfed.org/data/LREM64TTITA156N"],
+    note: "Quota di persone tra 15 e 64 anni che lavorano. Serie disponibile dal 1998; discontinuità di indagine nel 2004." },
+  occupati: { label: "Occupati", title: "Occupati tra 15 e 64 anni (milioni)", unit: " mln", type: "line", signed: false, dec: 2, scale: 1e-6,
+    src: ["OCSE, Infra-Annual Labour Statistics (via FRED)", "https://fred.stlouisfed.org/data/LFEM64TTITA647N"],
+    note: "Media annua. Il dato 2025 è la media dei quattro trimestri. Il totale ISTAT degli occupati (15–89 anni) è più alto perché include anche gli over 64." }
+};
+
+/* ===================== UTILITÀ ===================== */
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmt = (x, d = 1) => x == null || isNaN(x) ? "n.d." : x.toLocaleString("it-IT", { minimumFractionDigits: d, maximumFractionDigits: d });
+const fmtSigned = (x, d = 1) => x == null || isNaN(x) ? "n.d." : (x > 0 ? "+" : x < 0 ? "−" : "") + fmt(Math.abs(x), d);
+const fmtDate = iso => { const [y, m, d] = iso.split("-"); return `${d}/${m}/${y}`; };
+const parseDate = iso => { const [y, m, d] = iso.split("-").map(Number); return new Date(Date.UTC(y, m - 1, d)); };
+const DAY = 86400000;
+const TODAY = (() => { const n = new Date(); return new Date(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate())); })();
+const VOTE_LABEL = { S: "Sì", N: "No", A: "Ast." };
+function voteChip(v) {
+  if (v === "-") return `<i class="vote O" title="Non presente in questo ramo">—</i>`;
+  if (v == null) return `<i class="vote X" title="Posizione non verificata">n.d.</i>`;
+  return `<i class="vote ${v}">${VOTE_LABEL[v]}</i>`;
+}
+const tip = $("#tip");
+function showTip(html, ev) {
+  tip.innerHTML = html; tip.classList.add("on");
+  const pad = 14, w = tip.offsetWidth, h = tip.offsetHeight;
+  let x = ev.clientX + pad, y = ev.clientY + pad;
+  if (x + w > window.innerWidth - 8) x = ev.clientX - w - pad;
+  if (y + h > window.innerHeight - 8) y = ev.clientY - h - pad;
+  tip.style.left = Math.max(8, x) + "px"; tip.style.top = Math.max(8, y) + "px";
+}
+const hideTip = () => tip.classList.remove("on");
+
+/* ===================== EMICICLO ===================== */
+function hemicycleSVG(ch, rows) {
+  const total = ch.groups.reduce((a, g) => a + g.seats, 0);
+  const vacant = ch.seatsTotal - total;
+  const N = ch.seatsTotal;
+  const r0 = 0.40, r1 = 1.0;
+  const radii = Array.from({ length: rows }, (_, i) => r0 + (r1 - r0) * i / (rows - 1));
+  const sumR = radii.reduce((a, b) => a + b, 0);
+  const counts = radii.map(r => Math.round(N * r / sumR));
+  counts[rows - 1] += N - counts.reduce((a, b) => a + b, 0);
+  const pts = [];
+  radii.forEach((r, i) => {
+    const n = counts[i];
+    for (let j = 0; j < n; j++) {
+      const a = Math.PI * (1 - (n === 1 ? 0.5 : j / (n - 1)));
+      pts.push({ r, a, x: r * Math.cos(a), y: r * Math.sin(a) });
+    }
+  });
+  pts.sort((p, q) => (q.a - p.a) || (p.r - q.r));
+  const W = 440, H = 238, cx = W / 2, cy = 226, R = 206;
+  const dot = R * (r1 - r0) / (rows - 1) * 0.40;
+  const order = [];
+  ch.groups.forEach((g, gi) => { for (let k = 0; k < g.seats; k++) order.push(gi); });
+  // seggi vacanti al centro della sequenza, tra opposizioni/altri e maggioranza
+  const firstMag = ch.groups.findIndex(g => g.coal === "mag");
+  const insertAt = order.indexOf(firstMag);
+  for (let k = 0; k < vacant; k++) order.splice(insertAt, 0, -1);
+  let circles = "";
+  pts.forEach((p, i) => {
+    const gi = order[i];
+    const x = (cx + p.x * R).toFixed(1), y = (cy - p.y * R).toFixed(1);
+    if (gi === -1) {
+      circles += `<circle cx="${x}" cy="${y}" r="${(dot - 0.8).toFixed(2)}" fill="none" stroke="var(--muted)" stroke-width="1" data-g="-1"></circle>`;
+    } else {
+      circles += `<circle cx="${x}" cy="${y}" r="${dot.toFixed(2)}" fill="${COAL[ch.groups[gi].coal].color}" data-g="${gi}"></circle>`;
+    }
+  });
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Emiciclo ${esc(ch.title)}: ${total} seggi assegnati">${circles}
+    <text x="${cx}" y="${cy - 26}" text-anchor="middle" class="hemi-center" font-size="30">${total}</text>
+    <text x="${cx}" y="${cy - 6}" text-anchor="middle" class="hemi-center-sub">seggi in carica</text></svg>`;
+}
+
+/* ===================== GOVERNI ===================== */
+let selInd = "pil";
+let selGov = GOVS.length - 1;
+GOVS.forEach(g => {
+  g.s = parseDate(g.start);
+  g.e = g.end ? parseDate(g.end) : TODAY;
+  g.days = Math.round((g.e - g.s) / DAY) + 1;
+  g.years = [];
+});
+// attribuzione: ogni anno al governo con più giorni in carica in quell'anno
+for (let y = 1994; y <= Y1; y++) {
+  const ys = Date.UTC(y, 0, 1), ye = Date.UTC(y, 11, 31);
+  let best = -1, bestDays = 0;
+  GOVS.forEach((g, i) => {
+    const s = Math.max(ys, g.s.getTime()), e = Math.min(ye, g.e.getTime());
+    const d = e >= s ? Math.round((e - s) / DAY) + 1 : 0;
+    if (d > bestDays) { bestDays = d; best = i; }
+  });
+  if (best >= 0) GOVS[best].years.push(y);
+}
+const yearGov = {};
+GOVS.forEach((g, i) => g.years.forEach(y => yearGov[y] = i));
+const val = (k, y) => { const v = SERIES[k][y]; return v == null ? null : v * (INDICATORS[k].scale || 1); };
+function govStats(g) {
+  const out = {};
+  const avg = k => { const xs = g.years.map(y => val(k, y)).filter(x => x != null); return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null; };
+  out.pil = avg("pil"); out.infl = avg("infl"); out.deficit = avg("deficit");
+  const first = g.years[0], last = g.years[g.years.length - 1];
+  const pair = k => {
+    if (!g.years.length) return { end: null, delta: null };
+    const e = val(k, last), s = val(k, first - 1);
+    return { end: e, delta: e != null && s != null ? e - s : null };
+  };
+  out.debito = pair("debito"); out.disocc = pair("disocc"); out.occ = pair("occ");
+  out.giovani = pair("giovani"); out.femm = pair("femm");
+  out.spread = avg("spread");
+  const oe = SERIES.occupati[last], os = SERIES.occupati[first - 1];
+  out.occupati = g.years.length && oe != null && os != null ? (oe - os) / 1000 : null;
+  const pe = SERIES.pilpc[last], ps = SERIES.pilpc[first - 1];
+  out.pilpc = g.years.length && pe != null && ps != null ? (pe / ps - 1) * 100 : null;
+  return out;
+}
+const shortGov = n => n.replace("Berlusconi", "Berl.").replace("D'Alema", "D'Al.").replace("Gentiloni", "Gentil.");
+
+function renderIndPicker() {
+  $("#ind-picker").innerHTML = IND_GROUPS.map(([g, keys]) => `<div class="ind-group"><span class="src">${esc(g)}</span><div class="chips">${keys.map(k => `<button class="chip" data-k="${k}" aria-pressed="${k === selInd}">${esc(INDICATORS[k].label)}</button>`).join("")}</div></div>`).join("");
+  $("#ind-picker").onclick = e => {
+    const b = e.target.closest("button"); if (!b) return;
+    selInd = b.dataset.k;
+    $("#ind-picker").querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x.dataset.k === selInd));
+    renderChart();
+  };
+}
+function niceTicks(min, max, n = 5) {
+  const span = max - min || 1;
+  const step0 = span / n, mag = Math.pow(10, Math.floor(Math.log10(step0)));
+  const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => span / s <= n) || 10 * mag;
+  const lo = Math.floor(min / step) * step, hi = Math.ceil(max / step) * step;
+  const ticks = []; for (let v = lo; v <= hi + step / 2; v += step) ticks.push(+v.toFixed(10));
+  return { lo, hi, ticks, step };
+}
+function renderChart() {
+  const ind = INDICATORS[selInd];
+  $("#chart-title").textContent = ind.title;
+  $("#chart-src").innerHTML = `Fonte: <a href="${ind.src[1]}" target="_blank" rel="noopener">${esc(ind.src[0])}</a>`;
+  $("#chart-note").textContent = ind.note;
+  const box = $("#chart");
+  const W = Math.max(340, box.clientWidth || 900);
+  const narrow = W < 640;
+  const H = narrow ? 300 : 340;
+  const m = { t: 46, r: 14, b: 26, l: 44 };
+  const years = []; for (let y = 1994; y <= Y1; y++) years.push(y);
+  const pts = years.map(y => ({ y, v: val(selInd, y) }));
+  const vs = pts.filter(p => p.v != null).map(p => p.v);
+  let mn = Math.min(...vs), mx = Math.max(...vs);
+  if (ind.type === "bar") { mn = Math.min(0, mn); mx = Math.max(0, mx); }
+  else {
+    const pad = (mx - mn) * 0.08, allPos = mn >= 0;
+    mn -= pad; mx += pad;
+    if (selInd === "deficit" || selInd === "spread") mn = Math.min(0, mn);
+    if (allPos && mn < 0) mn = 0;
+  }
+  const T = niceTicks(mn, mx, narrow ? 4 : 5);
+  const iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const bw = iw / years.length;
+  const X = y => m.l + (y - years[0]) * bw + bw / 2;
+  const Yv = v => m.t + ih - (v - T.lo) / (T.hi - T.lo) * ih;
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(ind.title)}, 1994–${Y1}">`;
+  // bande dei governi
+  GOVS.forEach((g, i) => {
+    if (!g.years.length) return;
+    const x0 = m.l + (g.years[0] - years[0]) * bw, x1 = m.l + (g.years[g.years.length - 1] - years[0] + 1) * bw;
+    s += `<rect x="${x0.toFixed(1)}" y="${m.t}" width="${(x1 - x0).toFixed(1)}" height="${ih}" fill="${i % 2 ? "var(--band-2)" : "var(--band-1)"}"></rect>`;
+    if (i === selGov) s += `<rect class="band-sel" x="${x0.toFixed(1)}" y="${m.t}" width="${(x1 - x0).toFixed(1)}" height="${ih}"></rect>`;
+  });
+  // etichette dei governi su due righe alternate
+  let k = 0;
+  GOVS.forEach((g, i) => {
+    if (!g.years.length) return;
+    const x0 = m.l + (g.years[0] - years[0]) * bw, x1 = m.l + (g.years[g.years.length - 1] - years[0] + 1) * bw;
+    const row = k++ % 2;
+    const label = (x1 - x0) > 64 && !narrow ? g.name : shortGov(g.name);
+    const cxl = (x0 + x1) / 2;
+    s += `<line x1="${cxl.toFixed(1)}" x2="${cxl.toFixed(1)}" y1="${row ? 22 : 34}" y2="${m.t}" stroke="var(--rule)"></line>`;
+    s += `<text class="gov-lbl${i === selGov ? " sel" : ""}" x="${cxl.toFixed(1)}" y="${row ? 18 : 30}" text-anchor="middle" font-size="${narrow ? 9 : 10.5}">${esc(label)}</text>`;
+  });
+  // griglia e asse y
+  T.ticks.forEach(t => {
+    const yy = Yv(t);
+    s += `<line class="${t === 0 ? "zeroline" : "gridline"}" x1="${m.l}" x2="${W - m.r}" y1="${yy.toFixed(1)}" y2="${yy.toFixed(1)}"></line>`;
+    s += `<text class="lbl" x="${m.l - 6}" y="${(yy + 3.5).toFixed(1)}" text-anchor="end">${fmt(t, T.step < 1 ? (T.step < 0.1 ? 2 : 1) : 0)}</text>`;
+  });
+  // asse x
+  years.forEach(y => {
+    const every = narrow ? 8 : 4;
+    if ((y - 1994) % every === 0 || y === Y1) s += `<text class="lbl" x="${X(y).toFixed(1)}" y="${H - 8}" text-anchor="middle">${y}</text>`;
+  });
+  // serie
+  if (ind.type === "bar") {
+    const z = Yv(0);
+    pts.forEach(p => {
+      if (p.v == null) return;
+      const yy = Yv(p.v), h = Math.abs(z - yy), w = Math.max(2, bw - 3);
+      const x = X(p.y) - w / 2, top = p.v >= 0 ? yy : z;
+      s += `<rect class="${p.v >= 0 ? "bar-pos" : "bar-neg"}" x="${x.toFixed(1)}" y="${top.toFixed(1)}" width="${w.toFixed(1)}" height="${Math.max(h, 1).toFixed(1)}" rx="2"></rect>`;
+    });
+  } else {
+    const segs = []; let cur = [];
+    pts.forEach(p => { if (p.v == null) { if (cur.length) segs.push(cur); cur = []; } else cur.push(p); });
+    if (cur.length) segs.push(cur);
+    segs.forEach(seg => {
+      const d = seg.map((p, i) => `${i ? "L" : "M"}${X(p.y).toFixed(1)},${Yv(p.v).toFixed(1)}`).join("");
+      const base = Yv(Math.max(T.lo, Math.min(0, T.hi)) === T.lo ? T.lo : 0);
+      const area = d + `L${X(seg[seg.length - 1].y).toFixed(1)},${(m.t + ih).toFixed(1)}L${X(seg[0].y).toFixed(1)},${(m.t + ih).toFixed(1)}Z`;
+      s += `<path class="series-area" d="${area}"></path><path class="series-line" d="${d}"></path>`;
+    });
+    const lastP = pts.filter(p => p.v != null).pop();
+    if (lastP) s += `<circle class="series-dot" cx="${X(lastP.y).toFixed(1)}" cy="${Yv(lastP.v).toFixed(1)}" r="4.5"></circle>
+      <text class="lbl" x="${(X(lastP.y) - 8).toFixed(1)}" y="${(Yv(lastP.v) - 9).toFixed(1)}" text-anchor="end" style="fill:var(--ink);font-weight:600">${fmt(lastP.v, ind.dec)}${ind.unit}</text>`;
+  }
+  if (selInd === "deficit") {
+    const y3 = Yv(3);
+    s += `<line x1="${m.l}" x2="${W - m.r}" y1="${y3.toFixed(1)}" y2="${y3.toFixed(1)}" stroke="var(--ink-2)" stroke-dasharray="4 4"></line>
+      <text class="lbl" x="${W - m.r - 4}" y="${(y3 - 5).toFixed(1)}" text-anchor="end">soglia 3%</text>`;
+  }
+  s += `<line class="crosshair" id="xh" x1="0" x2="0" y1="${m.t}" y2="${m.t + ih}" style="display:none"></line>`;
+  s += `<rect id="hit" x="${m.l}" y="${m.t}" width="${iw}" height="${ih}" fill="transparent"></rect></svg>`;
+  box.innerHTML = s;
+  const svg = $("svg", box), xh = $("#xh", box);
+  $("#hit", box).addEventListener("mousemove", e => {
+    const r = svg.getBoundingClientRect();
+    const px = (e.clientX - r.left) * (W / r.width);
+    const y = Math.min(Y1, Math.max(1994, Math.floor((px - m.l) / bw) + 1994));
+    const v = val(selInd, y);
+    xh.setAttribute("x1", X(y)); xh.setAttribute("x2", X(y)); xh.style.display = "";
+    const g = GOVS[yearGov[y]];
+    showTip(`<b>${y}</b> · ${v == null ? "dato non disponibile" : (ind.signed ? fmtSigned(v, ind.dec) : fmt(v, ind.dec)) + (ind.unit === "%" ? "%" : ind.unit)}<br>Governo prevalente: ${g ? esc(g.name) : "—"}`, e);
+  });
+  $("#hit", box).addEventListener("mouseleave", () => { xh.style.display = "none"; hideTip(); });
+  $("#hit", box).addEventListener("click", e => {
+    const r = svg.getBoundingClientRect();
+    const px = (e.clientX - r.left) * (W / r.width);
+    const y = Math.min(Y1, Math.max(1994, Math.floor((px - m.l) / bw) + 1994));
+    if (yearGov[y] != null) { selGov = yearGov[y]; renderGovAll(); }
+  });
+}
+function deltaTxt(d, dec, unit) {
+  if (d == null) return "";
+  const arrow = d > 0 ? "▲" : d < 0 ? "▼" : "=";
+  return `${arrow} ${fmtSigned(d, dec)}${unit}`;
+}
+function renderGovCard() {
+  const g = GOVS[selGov], st = govStats(g);
+  const period = `${fmtDate(g.start)} – ${g.end ? fmtDate(g.end) : "in carica"}`;
+  const yrs = g.years.length ? (g.years.length === 1 ? String(g.years[0]) : `${g.years[0]}–${g.years[g.years.length - 1]}`) : "nessuno";
+  const prev = g.years.length ? g.years[0] - 1 : null;
+  const gm = (label, main, sub) => `<div class="gm"><span>${label}</span><b>${main}</b>${sub ? `<small>${sub}</small>` : ""}</div>`;
+  $("#gov-card").innerHTML = `
+    <div class="party-head"><div style="display:grid;gap:4px"><h3>Governo ${esc(g.name)}</h3><span class="note">${esc(g.pm)} · ${period} · ${g.days.toLocaleString("it-IT")} giorni${g.end ? "" : " finora"} · ${g.leg} legislatura</span></div>
+      <span class="badge">Anni attribuiti: ${yrs}</span></div>
+    <p class="note"><b>Sostegno parlamentare:</b> ${esc(g.support)}</p>
+    ${g.years.length ? `<div class="gov-metrics">
+      ${gm("Crescita PIL, media annua", fmtSigned(st.pil, 1) + "%", "")}
+      ${gm("Inflazione, media annua", fmt(st.infl, 1) + "%", "")}
+      ${gm("Deficit/PIL, media", st.deficit == null ? "n.d." : fmt(st.deficit, 1) + "%", st.deficit == null ? "serie dal 1995" : "")}
+      ${gm(`Debito/PIL a fine ${g.years[g.years.length - 1]}`, st.debito.end == null ? "n.d." : fmt(st.debito.end, 1) + "%", st.debito.delta == null ? (st.debito.end == null ? "serie dal 1995" : "") : `${deltaTxt(st.debito.delta, 1, " punti")} dal ${prev}`)}
+      ${gm(`Disoccupazione nel ${g.years[g.years.length - 1]}`, st.disocc.end == null ? "n.d." : fmt(st.disocc.end, 1) + "%", st.disocc.delta == null ? (st.disocc.end == null ? "serie dal 1998" : "") : `${deltaTxt(st.disocc.delta, 1, " punti")} dal ${prev}`)}
+      ${gm("Occupati 15–64, variazione", st.occupati == null ? "n.d." : `${fmtSigned(st.occupati, 0)} mila`, st.occupati == null ? "serie dal 1998" : `dal ${prev} al ${g.years[g.years.length - 1]}`)}
+      ${gm(`Disoccupazione giovanile nel ${g.years[g.years.length - 1]}`, st.giovani.end == null ? "n.d." : fmt(st.giovani.end, 1) + "%", st.giovani.delta == null ? "" : `${deltaTxt(st.giovani.delta, 1, " punti")} dal ${prev}`)}
+      ${gm(`Occupazione femminile nel ${g.years[g.years.length - 1]}`, st.femm.end == null ? "n.d." : fmt(st.femm.end, 1) + "%", st.femm.delta == null ? (st.femm.end == null ? "serie dal 1998" : "") : `${deltaTxt(st.femm.delta, 1, " punti")} dal ${prev}`)}
+      ${gm("Spread BTP-Bund, media", st.spread == null ? "n.d." : `${fmt(st.spread, 0)} pb`, "")}
+      ${gm("PIL pro capite reale, variazione", st.pilpc == null ? "n.d." : `${fmtSigned(st.pilpc, 1)}%`, st.pilpc == null ? "" : `dal ${prev} al ${g.years[g.years.length - 1]}`)}
+    </div>` : `<p class="note">Questo governo non è rimasto in carica per più di sei mesi in nessun anno solare, quindi non gli è attribuito alcun anno di dati annuali.</p>`}
+    ${!g.end ? `<p class="note">Il 2026 è ancora in corso: i dati annuali disponibili arrivano al 2025.</p>` : ""}
+    <p class="src">Date dei governi: <a href="${GOV_SRC.url}" target="_blank" rel="noopener">${GOV_SRC.label}</a>. Indicatori: fonti sotto il grafico e in Fonti e metodo.</p>`;
+}
+function renderGovTable() {
+  const head = `<thead><tr><th>Governo</th><th>Periodo</th><th class="n">Giorni</th><th>Anni</th><th class="n">PIL medio</th><th class="n">Inflazione media</th><th class="n">Deficit medio</th><th class="n">Debito/PIL (Δ)</th><th class="n">Disocc. (Δ)</th><th class="n">Disocc. giovanile (Δ)</th><th class="n">Occupati Δ</th><th class="n">Spread medio</th></tr></thead>`;
+  const rows = GOVS.map((g, i) => {
+    const st = govStats(g);
+    const yrs = g.years.length ? (g.years.length === 1 ? g.years[0] : `${g.years[0]}–${String(g.years[g.years.length - 1]).slice(2)}`) : "—";
+    const pairCell = p => p.end == null ? "n.d." : `${fmt(p.end, 1)}%${p.delta == null ? "" : ` <span class="src">(${fmtSigned(p.delta, 1)})</span>`}`;
+    const has = g.years.length > 0;
+    return `<tr class="gov-row${i === selGov ? " sel" : ""}" data-i="${i}" tabindex="0">
+      <td><b>${esc(g.name)}</b><br><span class="src">${esc(g.pm)}</span></td>
+      <td class="num" style="white-space:nowrap">${fmtDate(g.start)}<br>${g.end ? fmtDate(g.end) : "in carica"}</td>
+      <td class="n">${g.days.toLocaleString("it-IT")}</td>
+      <td class="num">${yrs}</td>
+      <td class="n">${has ? fmtSigned(st.pil, 1) + "%" : "—"}</td>
+      <td class="n">${has ? fmt(st.infl, 1) + "%" : "—"}</td>
+      <td class="n">${has ? (st.deficit == null ? "n.d." : fmt(st.deficit, 1) + "%") : "—"}</td>
+      <td class="n">${has ? pairCell(st.debito) : "—"}</td>
+      <td class="n">${has ? pairCell(st.disocc) : "—"}</td>
+      <td class="n">${has ? pairCell(st.giovani) : "—"}</td>
+      <td class="n">${has ? (st.occupati == null ? "n.d." : fmtSigned(st.occupati, 0) + " mila") : "—"}</td>
+      <td class="n">${has ? (st.spread == null ? "n.d." : fmt(st.spread, 0) + " pb") : "—"}</td></tr>`;
+  }).join("");
+  $("#gov-table").innerHTML = head + "<tbody>" + rows + "</tbody>";
+  $("#gov-table").onclick = e => { const r = e.target.closest("tr.gov-row"); if (r) { selGov = +r.dataset.i; renderGovAll(); } };
+  $("#gov-table").onkeydown = e => { if (e.key === "Enter") { const r = e.target.closest("tr.gov-row"); if (r) { selGov = +r.dataset.i; renderGovAll(); } } };
+}
+function renderGovAll() { renderChart(); renderGovCard(); renderGovTable(); }
+
+/* ===================== DATI UFFICIALI, AGGIORNATI OGNI GIORNO ===================== */
+const RAMI = {
+  camera: { nome: "Camera dei deputati", breve: "Camera", chi: "deputati", uno: "deputato", src: "https://dati.camera.it/", srcLabel: "dati.camera.it" },
+  senato: { nome: "Senato della Repubblica", breve: "Senato", chi: "senatori", uno: "senatore", src: "https://dati.senato.it/", srcLabel: "dati.senato.it" }
+};
+const CK = { maggioranza: "mag", opposizione: "opp", altro: "alt" };
+const OGGI = (() => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}`; })();
+const CAT = { finale: "Voto finale", fiducia: "Fiducia", emendamento: "Emendamento", articolo: "Articolo", odg: "Ordine del giorno", mozione: "Mozione o risoluzione", pregiudiziale: "Pregiudiziale o sospensiva", altro: "Altro", numero_legale: "Verifica del numero legale" };
+const COD = { F: "Favorevoli", C: "Contrari", A: "Astenuti", V: "Hanno votato (scrutinio segreto)", N: "Presenti non votanti", P: "Presidente di turno", M: "In missione o in congedo", "-": "Assenti", ".": "Non in carica" };
+const COD1 = { F: "Sì", C: "No", A: "Astenuto", V: "Ha votato (segreto)", N: "Presente, non ha votato", P: "Presidente di turno", M: "In missione", "-": "Assente", ".": "Non in carica" };
+const POS = { F: ["S", "Sì"], C: ["N", "No"], A: ["A", "Ast."], D: ["X", "Diviso"], "-": ["O", "—"], ".": ["O", "—"], V: ["X", "Votato"], N: ["O", "Pres."], P: ["O", "Pres."], M: ["O", "Miss."] };
+const D = { meta: null, ok: false, camera: null, senato: null, mesi: {} };
+const pct = (x, d = 1) => x == null || isNaN(x) ? "n.d." : fmt(x * 100, d) + "%";
+const inInt = (d, da, a) => (!da || da <= d) && (!a || d <= a);
+const chip = (c, sm = true) => { const [k, l] = POS[c] || ["O", "—"]; return `<i class="vote ${k}${sm ? " sm" : ""}">${l}</i>`; };
+const getJSON = async p => { const r = await fetch(p, { cache: "no-cache" }); if (!r.ok) throw new Error(`${p}: HTTP ${r.status}`); return r.json(); };
+const ramiAttivi = () => ["camera", "senato"].filter(r => D[r]);
+const fmtTs = ts => { try { return new Date(ts).toLocaleString("it-IT", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }); } catch (e) { return ts; } };
+const CUR = k => PARTIES[k === "aut" ? "ml" : k];
+const gl = (R, gid) => (R.G[gid] && R.G[gid].breve) || gid || "—";
+const gn = (R, gid) => (R.G[gid] && R.G[gid].nome) || gid || "";
+function gruppoAlla(m, d) { let g = null; m.adesioni.forEach(([gid, da, a]) => { if (inInt(d, da, a)) g = gid; }); return g; }
+
+function prepara(ramo, M, Gs, I) {
+  const G = {};
+  Object.entries(M.gruppi).forEach(([id, g]) => { G[id] = Object.assign({}, g, { id, membri: 0 }); });
+  Gs.gruppi.forEach(g => { G[g.id] = Object.assign({}, G[g.id] || {}, g); });
+  const cambiN = {};
+  Gs.cambi.forEach(c => { if (!c.sciolto && !c.stesso) cambiN[c.i] = (cambiN[c.i] || 0) + 1; });
+  const membri = M.membri.map(m => {
+    const attivo = m.mandati.some(([da, a]) => inInt(OGGI, da, a));
+    const ora = gruppoAlla(m, OGGI);
+    const ultimo = m.adesioni.length ? m.adesioni[m.adesioni.length - 1][0] : null;
+    const st = m.st || { tot: 0, pres: 0, mis: 0, ass: 0, cmp: 0, dis: 0 };
+    const fine = m.mandati.length ? m.mandati[m.mandati.length - 1][1] : null;
+    return Object.assign({}, m, {
+      ramo, attivo, g: attivo ? ora : (ora || ultimo), fine,
+      capoOra: attivo ? m.capo.filter(([, , a]) => !a).map(([gid]) => gid) : [],
+      q: `${m.nome} ${m.cognome}`.toLowerCase(),
+      pres: st.tot ? st.pres / st.tot : null, mis: st.tot ? st.mis / st.tot : null,
+      dis: st.cmp ? st.dis / st.cmp : null, cambi: cambiN[m.i] || 0, st
+    });
+  });
+  const righe = I.righe.map((r, k) => ({ ramo, k, id: r[0], d: r[1], n: r[2], t: r[3] || "", o: r[4] || "", c: r[5], f: r[6] || "", e: r[7], F: r[8], C: r[9], A: r[10], p: r[11] || "", pm: r[12], uff: r[13] }));
+  righe.forEach(r => { r.q = (r.o + " " + r.t).toLowerCase(); });
+  return { ramo, G, membri, ordine: I.gruppi, righe, conv: Gs.convergenza, cambi: Gs.cambi };
+}
+
+async function caricaDati() {
+  try {
+    D.meta = await getJSON("data/meta.json");
+    for (const r of ["camera", "senato"]) {
+      if (!D.meta.rami || !D.meta.rami[r] || !D.meta.rami[r].votazioni) continue;
+      const [M, Gs, I] = await Promise.all(["membri", "gruppi", "indice"].map(f => getJSON(`data/${r}/${f}.json`)));
+      D[r] = prepara(r, M, Gs, I);
+    }
+    D.ok = !!(D.camera || D.senato);
+  } catch (e) { D.errore = e.message; }
+}
+function mese(ramo, m) {
+  const key = ramo + m;
+  if (!D.mesi[key]) D.mesi[key] = getJSON(`data/${ramo}/votazioni/${m}.json`).then(x => { const by = {}; x.votazioni.forEach(v => { by[v.id] = v; }); return by; });
+  return D.mesi[key];
+}
+function capogruppi(R) {
+  const out = {};
+  R.membri.forEach(m => m.capoOra.forEach(gid => { (out[gid] = out[gid] || []).push(`${m.nome} ${m.cognome}`); }));
+  return out;
+}
+
+function renderStato() {
+  const el = $("#stato-dati");
+  if (!D.ok) {
+    el.classList.add("err");
+    el.innerHTML = `<span><strong>Dati delle votazioni non ancora disponibili.</strong> ${D.errore && !/404/.test(D.errore) ? "Errore: " + esc(D.errore) + ". " : ""}Se il sito è appena stato pubblicato, il primo aggiornamento automatico scarica l'intera legislatura e può richiedere qualche ora. La sezione Governi ed economia funziona già.</span>`;
+    return;
+  }
+  const parti = ramiAttivi().map(r => {
+    const m = D.meta.rami[r];
+    return `${RAMI[r].breve}: ${m.votazioni.toLocaleString("it-IT")} votazioni fino al ${fmtDate(m.ultima)}${m.da_scaricare ? ` <b>(archivio in completamento: mancano ${m.da_scaricare} ${r === "camera" ? "giorni" : "sedute"})</b>` : ""}`;
+  });
+  const err = ["camera", "senato"].filter(r => D.meta.rami[r] && D.meta.rami[r].errore).map(r => `${RAMI[r].breve}: ultimo aggiornamento non riuscito (${esc(D.meta.rami[r].errore)}), restano validi i dati precedenti`);
+  el.innerHTML = `<span><strong>Aggiornato il ${fmtTs(D.meta.aggiornato)}.</strong> ${parti.join(" · ")}. Fonte: dati aperti ufficiali di <a href="https://dati.camera.it/" target="_blank" rel="noopener">Camera</a> e <a href="https://dati.senato.it/" target="_blank" rel="noopener">Senato</a>.${err.length ? "<br>" + err.join("<br>") : ""}</span>`;
+  $("#brand-sub").textContent = `XIX legislatura · dati ufficiali aggiornati il ${fmtTs(D.meta.aggiornato).split(",")[0]}`;
+}
+
+/* ===================== PARLAMENTO ===================== */
+function composizione(r) {
+  const R = D[r], conta = {}, capi = capogruppi(R);
+  R.membri.forEach(m => { if (m.attivo) { const g = m.g || "_"; conta[g] = (conta[g] || 0) + 1; } });
+  const o = { opp: 0, alt: 1, mag: 2 };
+  return Object.entries(conta).map(([gid, n]) => {
+    const g = R.G[gid] || { nome: "Senza gruppo nei dati ufficiali", breve: "Senza gruppo", coal: "altro", chiave: "" };
+    return { gid, name: g.nome, short: g.breve, seats: n, coal: CK[g.coal] || "alt", chiave: g.chiave, capo: capi[gid] };
+  }).sort((a, b) => o[a.coal] - o[b.coal] || (a.coal === "mag" ? a.seats - b.seats : b.seats - a.seats));
+}
+function totaliCoal(gs) { const t = { mag: 0, opp: 0, alt: 0 }; gs.forEach(g => { t[g.coal] += g.seats; }); return t; }
+
+function renderTiles() {
+  const tiles = [];
+  ramiAttivi().forEach(r => {
+    const t = totaliCoal(composizione(r)), tot = t.mag + t.opp + t.alt;
+    const base = r === "camera" ? 400 : tot;
+    const dove = r === "camera" ? "alla Camera" : "al Senato";
+    tiles.push([`Maggioranza ${dove}`, t.mag, `su ${tot} ${RAMI[r].chi} in carica · maggioranza assoluta ${Math.floor(base / 2) + 1}`]);
+    tiles.push([`Opposizioni ${dove}`, t.opp, `più ${t.alt} tra Misto e altri gruppi`]);
+  });
+  $("#parl-tiles").innerHTML = tiles.map(([l, v, sub]) => `<div class="tile"><span class="tile-label">${l}</span><span class="tile-value">${v}</span><span class="tile-sub">${sub}</span></div>`).join("");
+}
+
+function renderChamber(r, el, rows) {
+  if (!D[r]) { el.innerHTML = `<div class="card-head"><h3>${RAMI[r].nome}</h3></div><p class="empty">Dati non ancora disponibili.</p>`; return; }
+  const groups = composizione(r);
+  const total = groups.reduce((a, g) => a + g.seats, 0);
+  const ch = { title: RAMI[r].nome, seatsTotal: r === "camera" ? Math.max(400, total) : total, groups };
+  const t = totaliCoal(groups);
+  const sorted = groups.map((g, i) => Object.assign({}, g, { i })).sort((a, b) => ({ mag: 0, opp: 1, alt: 2 })[a.coal] - ({ mag: 0, opp: 1, alt: 2 })[b.coal] || b.seats - a.seats);
+  const maxSeats = Math.max(...groups.map(g => g.seats));
+  const capoTxt = g => {
+    if (g.capo) return esc(g.capo.join(", "));
+    const c = CUR(g.chiave), v = c && (r === "camera" ? c.cam : c.sen);
+    return v ? `${esc(v)} <span class="src">(verifica manuale)</span>` : '<span class="nd">n.d.</span>';
+  };
+  el.innerHTML = `
+    <div class="card-head"><h3>${esc(ch.title)}</h3><span class="src">Fonte: <a href="${RAMI[r].src}" target="_blank" rel="noopener">${RAMI[r].srcLabel}</a> · al ${fmtDate(OGGI)}</span></div>
+    <div class="hemi-wrap">
+      <div class="hemi">${hemicycleSVG(ch, rows)}</div>
+      <div class="coal-bar" aria-hidden="true">${["opp", "alt", "mag"].map(k => `<span style="width:${t[k] / total * 100}%;background:${COAL[k].color}"></span>`).join("")}</div>
+      <div class="legend-row">${["mag", "opp", "alt"].map(k => `<span><i class="swatch" style="background:${COAL[k].color}"></i>${COAL[k].label}: <b class="num">${t[k]}</b></span>`).join("")}</div>
+      <div class="tbl-scroll"><table>
+        <thead><tr><th>Gruppo</th><th>Presidente del gruppo</th><th class="n">Seggi</th><th style="width:24%"></th></tr></thead>
+        <tbody>${sorted.map(g => `
+          <tr class="grp-row" data-g="${g.i}" tabindex="0">
+            <td><div class="grp-name"><i class="swatch" style="background:${COAL[g.coal].color}"></i><span>${esc(g.name)}</span></div></td>
+            <td>${capoTxt(g)}</td>
+            <td class="n">${g.seats}</td>
+            <td><span class="seatbar" style="width:${g.seats / maxSeats * 100}%;background:${COAL[g.coal].color}"></span></td>
+          </tr>`).join("")}
+        </tbody></table></div>
+      <p class="note">${r === "camera" ? `In carica ${total} deputati su 400${total < 400 ? ": i seggi vuoti sono in attesa di subentro" : ""}.` : `${total} senatori in carica, compresi i senatori a vita.`} Il Misto è mostrato come un unico gruppo: le componenti politiche al suo interno non sono pubblicate nei dati aperti.</p>
+    </div>`;
+  const hemi = $(".hemi", el);
+  const highlight = gi => {
+    hemi.classList.toggle("dim", gi != null);
+    hemi.querySelectorAll("circle").forEach(c => c.classList.toggle("on", gi != null && c.dataset.g == gi));
+    el.querySelectorAll("tr.grp-row").forEach(x => x.classList.toggle("hl", gi != null && x.dataset.g == gi));
+  };
+  hemi.addEventListener("mousemove", e => {
+    const c = e.target.closest("circle");
+    if (!c) { hideTip(); highlight(null); return; }
+    const gi = +c.dataset.g;
+    if (gi === -1) { showTip("<b>Seggio vacante</b><br>in attesa di subentro", e); highlight(null); return; }
+    const g = ch.groups[gi];
+    highlight(gi);
+    showTip(`<b>${esc(g.name)}</b><br>${g.seats} seggi · ${COAL[g.coal].long}`, e);
+  });
+  hemi.addEventListener("mouseleave", () => { hideTip(); highlight(null); });
+  el.querySelectorAll("tr.grp-row").forEach(x => {
+    x.addEventListener("mouseenter", () => highlight(+x.dataset.g));
+    x.addEventListener("focus", () => highlight(+x.dataset.g));
+    x.addEventListener("mouseleave", () => highlight(null));
+    x.addEventListener("blur", () => highlight(null));
+  });
+}
+
+function renderLeaders() {
+  const comp = {}; ramiAttivi().forEach(r => { comp[r] = composizione(r); });
+  const chiavi = [];
+  ["fdi", "lega", "fi", "nm", "pd", "m5s", "avs", "az", "iv", "aziv", "aut", "misto"].forEach(k => { if (ramiAttivi().some(r => comp[r].some(g => g.chiave === k)) || (MAIN_PARTIES.includes(k))) chiavi.push(k); });
+  ramiAttivi().forEach(r => comp[r].forEach(g => { if (g.chiave && !chiavi.includes(g.chiave)) chiavi.push(g.chiave); }));
+  const capo = (r, k) => {
+    const gs = (comp[r] || []).filter(g => g.chiave === k);
+    if (gs.some(g => g.capo)) return `${esc(gs.filter(g => g.capo).map(g => g.capo.join(", ")).join("; "))} <span class="ok-badge">dato ufficiale</span>`;
+    const c = CUR(k), v = c && (r === "camera" ? c.cam : c.sen);
+    if (!gs.length && !v) return '<span class="nd">nessun gruppo</span>';
+    return v ? esc(v) : '<span class="nd">n.d.</span>';
+  };
+  const nomeK = k => { const c = CUR(k); if (c) return [c.short, c.name]; for (const r of ramiAttivi()) { const g = comp[r].find(x => x.chiave === k); if (g) return [g.short, g.name]; } return [k, ""]; };
+  const coalK = k => { for (const r of ramiAttivi()) { const g = comp[r].find(x => x.chiave === k); if (g) return g.coal; } const c = CUR(k); return c ? c.coal : "alt"; };
+  $("#leaders").innerHTML = `
+    <div class="card-head"><h3>Leader e capigruppo</h3><span class="src">Capigruppo dai dati ufficiali quando pubblicati, altrimenti verificati a mano a novembre 2026</span></div>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>Forza politica</th><th>Leader</th><th>Capogruppo alla Camera</th><th>Capogruppo al Senato</th></tr></thead>
+      <tbody>${chiavi.map(k => { const [s, n] = nomeK(k), c = CUR(k); return `<tr>
+        <td><div class="grp-name"><i class="swatch" style="background:${COAL[coalK(k)].color}"></i><b>${esc(s)}</b></div><span class="src">${esc(n)}</span></td>
+        <td class="lead-name">${c && c.leader ? esc(c.leader) : '<span class="nd">—</span>'}</td>
+        <td>${capo("camera", k)}</td><td>${capo("senato", k)}</td></tr>`; }).join("")}
+      </tbody></table></div>
+    <p class="note" style="margin-top:10px">"Dato ufficiale" significa che il nome arriva dai dati aperti di Camera o Senato ed è aggiornato ogni giorno. I leader di partito non sono un dato parlamentare: sono verificati a mano e vanno ricontrollati periodicamente.</p>
+    <p class="src" style="margin-top:6px">Fonti delle verifiche manuali: ${LEADER_SRC.map(([l, u]) => `<a href="${u}" target="_blank" rel="noopener">${esc(l)}</a>`).join(" · ")}</p>`;
+}
+
+/* ===================== FORZE POLITICHE ===================== */
+let fRamo = "camera", fGid = null;
+function renderForze() {
+  if (!D.ok) { ["#party-card", "#party-conv"].forEach(s => { $(s).innerHTML = `<p class="empty">Dati non ancora disponibili.</p>`; }); return; }
+  if (!D[fRamo]) fRamo = ramiAttivi()[0];
+  const R = D[fRamo];
+  $("#forze-ramo").innerHTML = ramiAttivi().map(r => `<button class="chip" data-r="${r}" aria-pressed="${r === fRamo}">${RAMI[r].nome}</button>`).join("");
+  $("#forze-ramo").onclick = e => { const b = e.target.closest("button[data-r]"); if (!b) return; fRamo = b.dataset.r; fGid = null; renderForze(); };
+  const gruppi = R.ordine.map(id => R.G[id]).filter(Boolean);
+  const attuali = gruppi.filter(g => g.membri > 0), passati = gruppi.filter(g => !g.membri);
+  if (!fGid || !R.G[fGid]) fGid = attuali.length ? attuali[0].id : gruppi[0] && gruppi[0].id;
+  $("#party-chips").innerHTML = attuali.map(g => `<button class="chip" data-g="${g.id}" aria-pressed="${g.id === fGid}"><i class="swatch" style="background:${COAL[CK[g.coal] || "alt"].color}"></i>${esc(g.breve)}</button>`).join("")
+    + passati.map(g => `<button class="chip" data-g="${g.id}" aria-pressed="${g.id === fGid}" title="Gruppo non più attivo"><i class="swatch" style="background:var(--rule)"></i>${esc(g.breve)} <span class="src">non più attivo</span></button>`).join("");
+  $("#party-chips").onclick = e => { const b = e.target.closest("button[data-g]"); if (!b) return; fGid = b.dataset.g; renderForze(); };
+  const g = R.G[fGid];
+  if (!g) return;
+  const c = CUR(g.chiave), capi = capogruppi(R)[g.id];
+  const coal = CK[g.coal] || "alt";
+  const pos = g.posizioni || {};
+  const npos = (pos.F || 0) + (pos.C || 0) + (pos.A || 0);
+  const anni = Object.entries(g.anni || {}).filter(([, y]) => y.n || y.partecipazione != null);
+  const bar = x => x == null ? '<span class="nd">n.d.</span>' : `<span class="cell-bar"><span class="num">${pct(x, 0)}</span><span class="track"><i style="width:${x * 100}%"></i></span></span>`;
+  $("#party-card").innerHTML = `
+    <div class="party-head"><h3>${esc(g.nome)}</h3><span class="badge"><i class="swatch" style="background:${COAL[coal].color}"></i>${COAL[coal].long}</span></div>
+    <dl class="kv" style="margin:14px 0">
+      <dt>${RAMI[fRamo].chi[0].toUpperCase() + RAMI[fRamo].chi.slice(1)} oggi</dt><dd class="num">${g.membri || 0}</dd>
+      <dt>Presidente del gruppo</dt><dd>${capi ? esc(capi.join(", ")) + ' <span class="ok-badge">dato ufficiale</span>' : (c && (fRamo === "camera" ? c.cam : c.sen) ? esc(fRamo === "camera" ? c.cam : c.sen) + ' <span class="src">(verifica manuale)</span>' : '<span class="nd">n.d.</span>')}</dd>
+      ${c && c.leader ? `<dt>Leader del partito</dt><dd>${esc(c.leader)}</dd>` : ""}
+      ${c && c.eu ? `<dt>Gruppo al Parlamento europeo</dt><dd>${esc(c.eu)}</dd>` : ""}
+      ${c && c.note ? `<dt>Nota</dt><dd>${esc(c.note)}</dd>` : ""}
+    </dl>
+    <div class="gov-metrics">
+      <div class="gm"><span>Compattezza</span><b>${pct(g.coesione)}</b><small>dei suoi votanti segue la linea del gruppo · ${(g.n_coesione || 0).toLocaleString("it-IT")} votazioni</small></div>
+      <div class="gm"><span>Partecipazione</span><b>${pct(g.partecipazione)}</b><small>presenze dei membri alle votazioni</small></div>
+      <div class="gm"><span>Vota come la maggioranza</span><b>${pct(g.allineamento)}</b><small>su ${(g.n_allineamento || 0).toLocaleString("it-IT")} votazioni palesi${coal === "mag" ? " · per un gruppo di maggioranza misura la disciplina di coalizione" : ""}</small></div>
+      <div class="gm"><span>Posizioni prese</span><b class="num">${npos.toLocaleString("it-IT")}</b><small>Sì ${pct(npos ? (pos.F || 0) / npos : null, 0)} · No ${pct(npos ? (pos.C || 0) / npos : null, 0)} · Ast. ${pct(npos ? (pos.A || 0) / npos : null, 0)}</small></div>
+    </div>
+    ${anni.length ? `<h3 style="font-size:16px;margin:16px 0 6px">Anno per anno</h3>
+    <div class="tbl-scroll"><table><thead><tr><th>Anno</th><th class="n">Vota come la maggioranza</th><th class="n">Compattezza</th><th class="n">Partecipazione</th><th class="n">Votazioni</th></tr></thead><tbody>
+      ${anni.map(([a, y]) => `<tr><td class="num">${a}</td><td class="n">${bar(y.allineamento)}</td><td class="n">${bar(y.coesione)}</td><td class="n">${bar(y.partecipazione)}</td><td class="n">${(y.n || 0).toLocaleString("it-IT")}</td></tr>`).join("")}
+    </tbody></table></div>` : ""}
+    ${g.chiave === "misto" ? `<p class="note" style="margin-top:10px">Il Misto riunisce parlamentari di orientamenti diversi: compattezza e allineamento vanno letti con cautela e i voti dei suoi membri non sono confrontati con una "linea" del gruppo.</p>` : ""}`;
+
+  const cv = R.conv, i = cv.ids.indexOf(g.id);
+  let others = [];
+  if (i >= 0) others = cv.ids.map((id, j) => ({ id, x: cv.m[i][j] })).filter(o => o.id !== g.id && o.x).sort((a, b) => b.x[0] - a.x[0]);
+  $("#party-conv").innerHTML = `
+    <div class="card-head"><h3>Con chi vota più spesso</h3><span class="src">${RAMI[fRamo].nome}, votazioni palesi</span></div>
+    ${others.length ? `<table><thead><tr><th>Gruppo</th><th class="n">Stessa posizione</th><th style="width:38%"></th></tr></thead><tbody>
+      ${others.map(o => { const og = R.G[o.id]; return `<tr><td><div class="grp-name"><i class="swatch" style="background:${COAL[CK[og.coal] || "alt"].color}"></i>${esc(og.breve)}</div></td>
+        <td class="n">${pct(o.x[0], 0)} <span class="src">su ${o.x[1].toLocaleString("it-IT")}</span></td>
+        <td><span class="seatbar" style="width:${Math.max(o.x[0] * 100, 1.5)}%;background:var(--accent)"></span></td></tr>`; }).join("")}
+    </tbody></table>` : `<p class="note">Troppe poche votazioni per calcolare la convergenza di questo gruppo.</p>`}`;
+  renderMatrix();
+}
+function renderMatrix() {
+  const R = D[fRamo], cv = R.conv, ids = cv.ids;
+  $("#matrix-src").textContent = `${RAMI[fRamo].nome} · ${ids.length} gruppi`;
+  if (!ids.length) { $("#matrix").innerHTML = `<tbody><tr><td class="empty">Non ci sono ancora abbastanza votazioni.</td></tr></tbody>`; return; }
+  const vals = cv.m.flat().filter(Boolean).map(x => x[0]);
+  const lo = Math.min(...vals), hi = Math.max(...vals);
+  let h = `<thead><tr><th></th>${ids.map(id => `<th>${esc(gl(R, id))}</th>`).join("")}</tr></thead><tbody>`;
+  ids.forEach((a, i) => {
+    h += `<tr><th class="rowh">${esc(gl(R, a))}</th>`;
+    ids.forEach((b, j) => {
+      const x = cv.m[i][j];
+      if (a === b) { h += `<td class="self"><div>—</div></td>`; return; }
+      if (!x) { h += `<td><div style="color:var(--muted)">n.d.</div></td>`; return; }
+      const rel = hi > lo ? (x[0] - lo) / (hi - lo) : 1;
+      const mix = Math.round(8 + rel * 80);
+      const fg = mix >= 55 ? "var(--surface)" : "var(--ink)";
+      h += `<td><div data-i="${i}" data-j="${j}" style="background:color-mix(in srgb, var(--accent) ${mix}%, var(--surface));color:${fg}">${fmt(x[0] * 100, 0)}%</div></td>`;
+    });
+    h += `</tr>`;
+  });
+  $("#matrix").innerHTML = h + "</tbody>";
+  $("#matrix").onmousemove = e => {
+    const d = e.target.closest("div[data-i]");
+    if (!d) { hideTip(); return; }
+    const x = cv.m[+d.dataset.i][+d.dataset.j];
+    showTip(`<b>${esc(gl(R, ids[+d.dataset.i]))} e ${esc(gl(R, ids[+d.dataset.j]))}</b><br>stessa posizione in ${pct(x[0])} delle ${x[1].toLocaleString("it-IT")} votazioni in cui entrambi hanno votato`, e);
+  };
+  $("#matrix").onmouseleave = hideTip;
+}
+
+/* ===================== VOTAZIONI ===================== */
+const vf = { ramo: "tutti", anno: "tutti", cat: "tutte", esito: "tutti", q: "", chiave: "", gpos: "", legale: false, n: 50 };
+let TUTTE = [], IDXG = {}, CHIAVI = [];
+function preparaVoti() {
+  TUTTE = ramiAttivi().flatMap(r => D[r].righe).sort((a, b) => b.d.localeCompare(a.d) || a.ramo.localeCompare(b.ramo) || (b.n || 0) - (a.n || 0) || b.k - a.k);
+  const viste = {};
+  ramiAttivi().forEach(r => {
+    const R = D[r]; IDXG[r] = {};
+    R.ordine.forEach((gid, i) => {
+      const k = (R.G[gid] && R.G[gid].chiave) || gid;
+      (IDXG[r][k] = IDXG[r][k] || []).push(i);
+      if (!viste[k]) viste[k] = { k, l: gl(R, gid), coal: R.G[gid] && R.G[gid].coal };
+    });
+  });
+  const o = { maggioranza: 0, opposizione: 1, altro: 2 };
+  CHIAVI = Object.values(viste).sort((a, b) => (o[a.coal] ?? 3) - (o[b.coal] ?? 3) || a.l.localeCompare(b.l, "it"));
+}
+function posChiave(row, k) {
+  const ii = IDXG[row.ramo][k]; if (!ii) return null;
+  for (const i of ii) { const c = row.p[i]; if (c && c !== ".") return c; }
+  return null;
+}
+function passaVoto(r, salta) {
+  if (vf.ramo !== "tutti" && r.ramo !== vf.ramo) return false;
+  if (!vf.legale && r.c === "numero_legale") return false;
+  if (vf.anno !== "tutti" && !r.d.startsWith(vf.anno)) return false;
+  if (salta !== "cat" && vf.cat !== "tutte" && r.c !== vf.cat) return false;
+  if (vf.esito !== "tutti" && r.e !== (vf.esito === "a" ? 1 : 0)) return false;
+  if (vf.parole && vf.parole.length && !vf.parole.every(w => r.q.includes(w))) return false;
+  if (vf.chiave) {
+    const c = posChiave(r, vf.chiave);
+    if (!c || !"FCA".includes(c)) return false;
+    if (vf.gpos === "diff") return "FCA".includes(r.pm) && c !== r.pm;
+    if (vf.gpos && c !== vf.gpos) return false;
+  }
+  return true;
+}
+function renderVoteFilters() {
+  if (!D.ok) { $("#votes-filters").innerHTML = `<p class="empty">L'archivio delle votazioni non è ancora disponibile.</p>`; return; }
+  const anni = [...new Set(TUTTE.map(r => r.d.slice(0, 4)))].sort().reverse();
+  const opt = (v, l, s) => `<option value="${esc(v)}"${String(s) === String(v) ? " selected" : ""}>${esc(l)}</option>`;
+  $("#votes-filters").innerHTML = `
+    <div class="frow">
+      <label>Ramo <select data-f="ramo">${opt("tutti", "Camera e Senato", vf.ramo)}${ramiAttivi().map(r => opt(r, RAMI[r].breve, vf.ramo)).join("")}</select></label>
+      <label>Anno <select data-f="anno">${opt("tutti", "Tutti", vf.anno)}${anni.map(a => opt(a, a, vf.anno)).join("")}</select></label>
+      <label>Esito <select data-f="esito">${opt("tutti", "Tutti", vf.esito)}${opt("a", "Approvate", vf.esito)}${opt("r", "Respinte", vf.esito)}</select></label>
+      <label class="search">Cerca <input id="vote-q" type="search" placeholder="es. libri digitali, Ucraina, em. 3.12" value="${esc(vf.q)}"></label>
+    </div>
+    <div class="chips" id="vote-cats" role="group" aria-label="Tipo di votazione"></div>
+    <div class="frow">
+      <label>Gruppo <select data-f="chiave">${opt("", "Qualsiasi", vf.chiave)}${CHIAVI.map(x => opt(x.k, x.l, vf.chiave)).join("")}</select></label>
+      <label>che ha votato <select data-f="gpos"${vf.chiave ? "" : " disabled"}>${opt("", "in qualsiasi modo", vf.gpos)}${opt("F", "Sì", vf.gpos)}${opt("C", "No", vf.gpos)}${opt("A", "astenendosi", vf.gpos)}${opt("diff", "diversamente dalla maggioranza", vf.gpos)}</select></label>
+      <label><input type="checkbox" data-f="legale"${vf.legale ? " checked" : ""}> Mostra anche le verifiche del numero legale</label>
+    </div>`;
+  $("#votes-filters").querySelectorAll("select[data-f]").forEach(s => s.onchange = () => { vf[s.dataset.f] = s.value; if (s.dataset.f === "chiave" && !s.value) vf.gpos = ""; vf.n = 50; renderVoteFilters(); renderVotesList(); });
+  $("#votes-filters").querySelector("input[data-f=legale]").onchange = e => { vf.legale = e.target.checked; vf.n = 50; renderVoteCats(); renderVotesList(); };
+  let tq;
+  $("#vote-q").oninput = e => { clearTimeout(tq); tq = setTimeout(() => { vf.q = e.target.value; vf.parole = vf.q.trim().toLowerCase().split(/\s+/).filter(Boolean); vf.n = 50; renderVoteCats(); renderVotesList(); }, 180); };
+  renderVoteCats();
+}
+function renderVoteCats() {
+  const conta = {}; let tot = 0;
+  TUTTE.forEach(r => { if (passaVoto(r, "cat")) { conta[r.c] = (conta[r.c] || 0) + 1; tot++; } });
+  const voci = [["tutte", "Tutte", tot], ...Object.keys(CAT).filter(k => conta[k] || vf.cat === k).map(k => [k, CAT[k], conta[k] || 0])];
+  $("#vote-cats").innerHTML = voci.map(([k, l, n]) => `<button class="chip" data-c="${k}" aria-pressed="${vf.cat === k}">${esc(l)} <span class="src">${n.toLocaleString("it-IT")}</span></button>`).join("");
+  $("#vote-cats").onclick = e => { const b = e.target.closest("button[data-c]"); if (!b) return; vf.cat = b.dataset.c; vf.n = 50; renderVoteCats(); renderVotesList(); };
+}
+function vRow(r) {
+  const R = D[r.ramo];
+  const segreta = r.f.includes("S");
+  const [F, C, A] = (r.uff && r.uff[0] != null) ? r.uff : [r.F, r.C, r.A];
+  const tot = (F || 0) + (C || 0) + (A || 0);
+  const seg = (k, cls, lab) => k ? `<span class="${cls}" style="flex:${k} 1 0" title="${lab}: ${k}"></span>` : "";
+  const titolo = r.o || r.t || "Votazione senza descrizione";
+  const sub = r.o && r.t && r.t !== r.o ? r.t : "";
+  const chips = r.c === "numero_legale" ? `<span>Serve solo a verificare che in Aula ci sia il numero minimo di presenti.</span>` : segreta ? `<span>Scrutinio segreto: il voto dei singoli non è pubblico.</span>`
+    : R.ordine.map((gid, i) => { const c = r.p[i]; if (!c || c === ".") return ""; return `<span title="${esc(gn(R, gid))}">${esc(gl(R, gid))} ${chip(c)}</span>`; }).join("");
+  return `<article class="card vrow" data-id="${r.ramo}:${r.k}">
+    <div class="vmeta"><b class="num">${fmtDate(r.d)}</b><span>·</span><span>${RAMI[r.ramo].breve}${r.n ? ` · votazione n. ${r.n}` : ""}</span><span class="badge">${esc(CAT[r.c] || r.c)}</span>${r.f.includes("Q") && r.c !== "fiducia" ? '<span class="flagtag">questione di fiducia</span>' : ""}${segreta ? '<span class="flagtag">segreta</span>' : ""}${r.e != null ? `<span class="esito">${r.e ? "Approvata" : "Respinta"}</span>` : ""}</div>
+    <h3 class="vt">${esc(titolo)}</h3>${sub ? `<p class="sub">${esc(sub)}</p>` : ""}
+    ${tot ? `<div class="tab-bar slim" role="img" aria-label="Favorevoli ${F || 0}, contrari ${C || 0}, astenuti ${A || 0}">${seg(F, "S", "Favorevoli")}${seg(C, "N", "Contrari")}${seg(A, "A", "Astenuti")}</div>
+    <div class="tab-legend sm"><span><b class="num">${F || 0}</b> favorevoli</span><span><b class="num">${C || 0}</b> contrari</span><span><b class="num">${A || 0}</b> astenuti</span></div>` : ""}
+    <div class="gpos">${chips}</div>
+    <button class="link" data-det aria-expanded="false">Dettagli e voto di ogni ${RAMI[r.ramo].uno}</button>
+    <div class="det"></div>
+  </article>`;
+}
+function renderVotesList() {
+  if (!D.ok) { $("#votes-list").innerHTML = ""; $("#votes-count").textContent = ""; return; }
+  const lista = TUTTE.filter(r => passaVoto(r));
+  $("#votes-count").textContent = `${lista.length.toLocaleString("it-IT")} votazioni${lista.length > vf.n ? `, mostrate le prime ${vf.n}` : ""}.`;
+  $("#votes-list").innerHTML = lista.length ? lista.slice(0, vf.n).map(vRow).join("") : `<div class="card"><p class="note">Nessuna votazione corrisponde ai filtri. Prova a togliere un filtro o a cambiare parola.</p></div>`;
+  const more = $("#votes-more");
+  more.hidden = lista.length <= vf.n;
+  more.onclick = () => { vf.n += 50; renderVotesList(); };
+}
+async function apriDettaglio(art) {
+  const [ramo, k] = art.dataset.id.split(":");
+  const R = D[ramo], r = R.righe[+k];
+  const det = $(".det", art), btn = $("button[data-det]", art);
+  if (det.innerHTML) { det.innerHTML = ""; btn.setAttribute("aria-expanded", "false"); return; }
+  btn.setAttribute("aria-expanded", "true");
+  det.innerHTML = `<p class="loading">Carico il dettaglio…</p>`;
+  let v;
+  try { v = (await mese(ramo, r.d.slice(0, 7)))[r.id]; } catch (e) { det.innerHTML = `<p class="empty">Dettaglio non disponibile (${esc(e.message)}).</p>`; return; }
+  if (!v) { det.innerHTML = `<p class="empty">Dettaglio non trovato nell'archivio.</p>`; return; }
+  const t = v.tot || [];
+  const gids = R.ordine.filter(g => v.g && v.g[g]);
+  const tab = `<div class="tbl-scroll"><table><thead><tr><th>Gruppo</th><th class="n">Sì</th><th class="n">No</th><th class="n">Ast.</th><th class="n">Altri presenti</th><th class="n">Missione</th><th class="n">Assenti</th><th class="n">Posizione</th></tr></thead><tbody>${gids.map(g => {
+    const x = v.g[g], i = R.ordine.indexOf(g);
+    return `<tr><td><b>${esc(gl(R, g))}</b> <span class="src">${esc(gn(R, g))}</span></td>${x.map(n => `<td class="n">${n}</td>`).join("")}<td class="n">${chip((v.p || "")[i] || "-")}</td></tr>`;
+  }).join("")}</tbody></table></div>`;
+  const per = {};
+  for (let i = 0; i < v.v.length; i++) { const c = v.v[i]; if (c === ".") continue; const m = R.membri[i]; if (m) (per[c] = per[c] || []).push(m); }
+  const nomi = ["F", "C", "A", "V", "N", "P", "M", "-"].filter(c => per[c]).map(c => {
+    const lista = per[c].sort((a, b) => a.cognome.localeCompare(b.cognome, "it")).map(m => { const g = gruppoAlla(m, v.d); return `<b>${esc(m.cognome)}</b> ${esc(m.nome)}${g ? ` <span class="src">${esc(gl(R, g))}</span>` : ""}`; }).join(", ");
+    return `<details><summary>${COD[c]}: ${per[c].length}</summary><p class="names">${lista}</p></details>`;
+  }).join("");
+  const chk = v.chk ? `<p class="note">I voti nominativi pubblicati non coincidono del tutto con il risultato ufficiale (favorevoli ${fmtSigned(v.chk[0], 0)}, contrari ${fmtSigned(v.chk[1], 0)}, astenuti ${fmtSigned(v.chk[2], 0)}). Succede, per esempio, quando un parlamentare segnala in Aula di aver sbagliato a votare. Fa fede il risultato ufficiale.</p>` : "";
+  det.innerHTML = `
+    <div class="tab-legend">${t[0] != null ? `<span>Presenti <b class="num">${t[0]}</b></span>` : ""}${t[1] != null ? `<span>Votanti <b class="num">${t[1]}</b></span>` : ""}${t[5] != null ? `<span>Maggioranza richiesta <b class="num">${t[5]}</b></span>` : ""}</div>
+    ${tab}${chk}
+    <div>${nomi}</div>
+    <p class="src">Fonte: <a href="${esc(v.u || RAMI[ramo].src)}" target="_blank" rel="noopener">scheda ufficiale su ${RAMI[ramo].srcLabel}</a>${v.s ? ` · seduta ${esc(v.s)}` : ""}</p>`;
+}
+document.addEventListener("click", e => { const b = e.target.closest("button[data-det]"); if (b) apriDettaglio(b.closest("article.vrow")); });
+
+/* Votazioni in evidenza (schede redazionali) */
+function chipFor(v, pid) {
+  if (v.secret) return `<i class="vote X" title="Scrutinio segreto">segreto</i>`;
+  return voteChip(v.pos[pid]);
+}
+function renderEvidenza() {
+  const order = [...MAIN_PARTIES, "fn", "ml", "scn"];
+  $("#evidenza-list").innerHTML = [...VOTES].sort((a, b) => b.date.localeCompare(a.date)).map(v => {
+    const t = v.tally, sum = t.S + t.N + (t.A || 0);
+    const seg = k => t[k] ? `<span class="${k}" style="flex:${t[k]} 1 0" title="${VOTE_LABEL[k]}: ${t[k]}">${t[k] / sum > 0.06 ? t[k] : ""}</span>` : "";
+    const present = order.filter(id => id in v.pos);
+    return `<article class="card vcard">
+      <div class="card-head" style="margin:0"><h3>${esc(v.title)}</h3><span class="esito">${esc(v.outcome)}</span></div>
+      <div class="vmeta"><span class="badge">${v.rilievo === "minore" ? "Meno nota" : "Grande tema"}</span><span>${esc(v.tema)}</span><span>·</span><span>${v.chamber === "Camera" ? "Camera dei deputati" : "Senato della Repubblica"}</span><span>·</span><span>${v.dateLabel ? esc(v.dateLabel) : fmtDate(v.date)}</span><span>·</span><span>${esc(v.kind)}</span></div>
+      <p>${esc(v.desc)}</p>
+      <div class="tabellone">
+        <div class="tab-bar" role="img" aria-label="Favorevoli ${t.S}, contrari ${t.N}${t.A != null ? ", astenuti " + t.A : ""}">${seg("S")}${seg("N")}${seg("A")}</div>
+        <div class="tab-legend"><span><b class="num">${t.S}</b> favorevoli</span><span>${t.N ? `<b class="num">${t.N}</b> contrari` : "nessun contrario"}</span><span>${t.A != null ? `<b class="num">${t.A}</b> ${t.A === 1 ? "astenuto" : "astenuti"}` : "astenuti: dato non riportato dalle fonti"}</span></div>
+      </div>
+      ${v.secret
+        ? `<p class="note"><i class="vote X">segreto</i> Voto a scrutinio segreto: la posizione dei gruppi non è pubblica.</p>`
+        : `<div class="pos-grid">${present.map(id => `<div class="pos"><span>${esc(PARTIES[id].short)}</span>${voteChip(v.pos[id])}</div>`).join("")}</div>`}
+      <p class="note">${esc(v.extra)}</p>
+      <p class="src">Fonti: ${v.sources.map(([l, u]) => `<a href="${u}" target="_blank" rel="noopener">${esc(l)}</a>`).join(" · ")}</p>
+    </article>`;
+  }).join("") + `<p class="note">In queste schede la posizione delle forze politiche viene da resoconti giornalistici e schede ufficiali, e include le componenti del Misto (per esempio +Europa). Nell'elenco completo qui sotto la posizione è calcolata dai voti individuali dei gruppi ufficiali.</p>`;
+}
+
+/* ===================== PARLAMENTARI ===================== */
+const pf = { ramo: "tutti", chiave: "", attivi: true, q: "", sort: "cognome", dir: 1, n: 100, sel: null };
+function renderParlFilters() {
+  if (!D.ok) { $("#parl-filters").innerHTML = `<p class="empty">Dati non ancora disponibili.</p>`; $("#parl-table").innerHTML = ""; return; }
+  const opt = (v, l, s) => `<option value="${esc(v)}"${String(s) === String(v) ? " selected" : ""}>${esc(l)}</option>`;
+  $("#parl-filters").innerHTML = `<div class="frow">
+    <label>Ramo <select data-f="ramo">${opt("tutti", "Camera e Senato", pf.ramo)}${ramiAttivi().map(r => opt(r, RAMI[r].breve, pf.ramo)).join("")}</select></label>
+    <label>Gruppo <select data-f="chiave">${opt("", "Tutti", pf.chiave)}${CHIAVI.map(x => opt(x.k, x.l, pf.chiave)).join("")}</select></label>
+    <label class="search">Cerca <input id="parl-q" type="search" placeholder="nome o cognome" value="${esc(pf.q)}"></label>
+    <label><input type="checkbox" data-f="attivi"${pf.attivi ? " checked" : ""}> Solo in carica oggi</label>
+  </div>`;
+  $("#parl-filters").querySelectorAll("select[data-f]").forEach(s => s.onchange = () => { pf[s.dataset.f] = s.value; pf.n = 100; renderParlTable(); });
+  $("#parl-filters").querySelector("input[data-f=attivi]").onchange = e => { pf.attivi = e.target.checked; pf.n = 100; renderParlTable(); };
+  let tq;
+  $("#parl-q").oninput = e => { clearTimeout(tq); tq = setTimeout(() => { pf.q = e.target.value.trim().toLowerCase(); pf.n = 100; renderParlTable(); }, 150); };
+}
+function renderParlTable() {
+  if (!D.ok) return;
+  let righe = ramiAttivi().filter(r => pf.ramo === "tutti" || pf.ramo === r).flatMap(r => D[r].membri);
+  if (pf.attivi) righe = righe.filter(m => m.attivo);
+  if (pf.chiave) righe = righe.filter(m => m.g && D[m.ramo].G[m.g] && D[m.ramo].G[m.g].chiave === pf.chiave);
+  if (pf.q) righe = righe.filter(m => pf.q.split(/\s+/).every(w => m.q.includes(w)));
+  const key = { cognome: m => (m.cognome + " " + m.nome).toLowerCase(), gruppo: m => gl(D[m.ramo], m.g).toLowerCase(), pres: m => m.pres ?? -1, mis: m => m.mis ?? -1, dis: m => m.dis ?? -1, cambi: m => m.cambi }[pf.sort];
+  righe = righe.slice().sort((a, b) => { const x = key(a), y = key(b); return (typeof x === "string" ? x.localeCompare(y, "it", { numeric: true }) : x - y) * pf.dir; });
+  const th = (k, l, n) => `<th class="sort${n ? " n" : ""}" data-s="${k}"${pf.sort === k ? ` aria-sort="${pf.dir > 0 ? "ascending" : "descending"}"` : ""}>${l}</th>`;
+  const bar = (x, muted) => x == null ? '<span class="nd">n.d.</span>' : `<span class="cell-bar"><span class="num">${pct(x)}</span><span class="track"><i style="width:${Math.min(x * 100, 100)}%${muted ? ";background:var(--muted)" : ""}"></i></span></span>`;
+  $("#parl-table").innerHTML = `<thead><tr>${th("cognome", "Nome")}<th>Ramo</th>${th("gruppo", "Gruppo")}${th("pres", "Presenze", 1)}${th("mis", "Missioni", 1)}${th("dis", "Voti diversi dal gruppo", 1)}${th("cambi", "Cambi di gruppo", 1)}</tr></thead>
+    <tbody>${righe.slice(0, pf.n).map(m => `<tr class="click${pf.sel && pf.sel[0] === m.ramo && pf.sel[1] === m.i ? " sel" : ""}" data-r="${m.ramo}" data-i="${m.i}" tabindex="0">
+      <td><b>${esc(m.cognome)}</b> ${esc(m.nome)}${m.attivo ? "" : ` <span class="src">${m.fine ? "cessato il " + fmtDate(m.fine) : "non in carica"}</span>`}</td>
+      <td>${RAMI[m.ramo].breve}</td>
+      <td title="${esc(gn(D[m.ramo], m.g))}">${m.g ? esc(gl(D[m.ramo], m.g)) : '<span class="nd">—</span>'}</td>
+      <td class="n">${bar(m.pres)}</td><td class="n">${bar(m.mis, true)}</td>
+      <td class="n">${m.dis == null ? '<span class="nd">n.d.</span>' : `${pct(m.dis)} <span class="src">(${m.st.dis})</span>`}</td>
+      <td class="n">${m.cambi || ""}</td></tr>`).join("")}</tbody>`;
+  if (!righe.length) $("#parl-table").innerHTML += `<tbody><tr><td colspan="7" class="empty">Nessun parlamentare corrisponde ai filtri.</td></tr></tbody>`;
+  $("#parl-table").querySelectorAll("th.sort").forEach(h => h.onclick = () => { const s = h.dataset.s; pf.dir = pf.sort === s ? -pf.dir : (s === "cognome" || s === "gruppo" ? 1 : -1); pf.sort = s; renderParlTable(); });
+  const apri = tr => { pf.sel = [tr.dataset.r, +tr.dataset.i]; renderParlTable(); renderParlDet(); $("#parl-det").scrollIntoView({ behavior: "smooth", block: "start" }); };
+  $("#parl-table").querySelectorAll("tr.click").forEach(tr => { tr.onclick = () => apri(tr); tr.onkeydown = e => { if (e.key === "Enter") apri(tr); }; });
+  const more = $("#parl-more");
+  more.hidden = righe.length <= pf.n;
+  more.onclick = () => { pf.n += 100; renderParlTable(); };
+}
+async function renderParlDet() {
+  const el = $("#parl-det");
+  if (!pf.sel || !D[pf.sel[0]]) { el.hidden = true; return; }
+  const [ramo, i] = pf.sel, R = D[ramo], m = R.membri[i], st = m.st;
+  el.hidden = false;
+  const storia = m.adesioni.map(([gid, da, a]) => `<div><b>${esc(gl(R, gid))}</b><span>${esc(gn(R, gid))}</span><span class="src">dal ${fmtDate(da)}${a ? ` al ${fmtDate(a)}` : ""}</span></div>`).join("") || '<div class="empty">Nessuna adesione pubblicata.</div>';
+  const capo = m.capo.map(([gid, da, a]) => `presidente del gruppo ${esc(gl(R, gid))} dal ${fmtDate(da)}${a ? ` al ${fmtDate(a)}` : ""}`).join("; ");
+  const div = (m.div || []).slice().reverse();
+  const righeDiv = div.slice(0, 40).map(([k, c]) => {
+    const r = R.righe[k]; if (!r) return "";
+    const g = gruppoAlla(m, r.d), gi = R.ordine.indexOf(g), pg = gi >= 0 ? r.p[gi] : "-";
+    return `<tr><td class="num">${fmtDate(r.d)}</td><td>${esc(r.o || r.t)}${r.o && r.t ? `<br><span class="src">${esc(r.t)}</span>` : ""}</td><td class="n">${chip(c)}</td><td class="n">${esc(gl(R, g))} ${chip(pg)}</td></tr>`;
+  }).join("");
+  el.innerHTML = `
+    <div class="party-head"><h3>${esc(m.nome)} ${esc(m.cognome)}</h3><button class="chip close" id="parl-chiudi">Chiudi</button></div>
+    <p class="note" style="margin:6px 0 12px">${RAMI[ramo].nome} · ${m.attivo ? "in carica" : (m.fine ? "cessato dal mandato il " + fmtDate(m.fine) : "non in carica")}${m.tipo && /vita/i.test(m.tipo) ? " · senatore a vita" : ""}${capo ? " · " + capo : ""} · <a href="${esc(m.id)}" target="_blank" rel="noopener">scheda ufficiale</a></p>
+    <div class="gov-metrics">
+      <div class="gm"><span>Presenze</span><b>${pct(m.pres)}</b><small>${st.pres.toLocaleString("it-IT")} votazioni su ${st.tot.toLocaleString("it-IT")}</small></div>
+      <div class="gm"><span>In missione</span><b>${pct(m.mis)}</b><small>${st.mis.toLocaleString("it-IT")} votazioni, assenze giustificate</small></div>
+      <div class="gm"><span>Assenze</span><b>${pct(st.tot ? st.ass / st.tot : null)}</b><small>${st.ass.toLocaleString("it-IT")} votazioni</small></div>
+      <div class="gm"><span>Voti diversi dal gruppo</span><b>${pct(m.dis)}</b><small>${st.dis.toLocaleString("it-IT")} su ${st.cmp.toLocaleString("it-IT")} voti confrontabili</small></div>
+    </div>
+    <h3 style="font-size:16px;margin:16px 0 6px">Gruppi</h3>
+    <div class="hist">${storia}</div>
+    <h3 style="font-size:16px;margin:16px 0 6px">Quando ha votato diversamente dal suo gruppo</h3>
+    ${righeDiv ? `<div class="tbl-scroll"><table><thead><tr><th>Data</th><th>Votazione</th><th class="n">Suo voto</th><th class="n">Gruppo</th></tr></thead><tbody>${righeDiv}</tbody></table></div>${div.length > 40 ? `<p class="src">Mostrate le 40 più recenti su ${st.dis.toLocaleString("it-IT")}.</p>` : ""}` : `<p class="empty">Nessuna votazione palese in cui abbia votato diversamente dal suo gruppo${m.g && R.G[m.g] && R.G[m.g].chiave === "misto" ? " (per il Misto il confronto non si fa)" : ""}.</p>`}
+    <h3 style="font-size:16px;margin:16px 0 6px">Ultimi voti</h3>
+    <div id="parl-ultimi"><p class="loading">Carico gli ultimi voti…</p></div>`;
+  $("#parl-chiudi").onclick = () => { pf.sel = null; renderParlDet(); renderParlTable(); };
+  const ultime = R.righe.filter(r => r.c !== "numero_legale").slice(-400);
+  const mesi = [...new Set(ultime.slice(-30).map(r => r.d.slice(0, 7)))];
+  try {
+    const dati = await Promise.all(mesi.map(x => mese(ramo, x)));
+    const tutte = Object.assign({}, ...dati);
+    const lista = ultime.slice(-30).reverse().map(r => ({ r, v: tutte[r.id] })).filter(x => x.v && (x.v.v[i] || ".") !== ".");
+    if (pf.sel && pf.sel[0] === ramo && pf.sel[1] === i) $("#parl-ultimi").innerHTML = lista.length ? `<div class="tbl-scroll"><table><thead><tr><th>Data</th><th>Votazione</th><th class="n">Voto</th></tr></thead><tbody>${lista.slice(0, 20).map(({ r, v }) => `<tr><td class="num">${fmtDate(r.d)}</td><td>${esc(r.o || r.t)}</td><td class="n">${"FCA".includes(v.v[i]) ? chip(v.v[i]) : `<span class="src">${COD1[v.v[i]] || v.v[i]}</span>`}</td></tr>`).join("")}</tbody></table></div>` : `<p class="empty">Nessuna votazione recente mentre era in carica.</p>`;
+  } catch (e) { $("#parl-ultimi").innerHTML = `<p class="empty">Ultimi voti non disponibili (${esc(e.message)}).</p>`; }
+}
+
+/* ===================== CAMBI ===================== */
+const cf = { ramo: "tutti", anno: "tutti", tecnici: false };
+function renderCambi() {
+  if (!D.ok) { $("#cambi-filters").innerHTML = `<p class="empty">Dati non ancora disponibili.</p>`; $("#cambi-list").innerHTML = ""; $("#cambi-saldi").innerHTML = ""; return; }
+  const tutti = ramiAttivi().flatMap(r => D[r].cambi.map(c => Object.assign({}, c, { ramo: r })));
+  const anni = [...new Set(tutti.map(c => c.d.slice(0, 4)))].sort().reverse();
+  const opt = (v, l, s) => `<option value="${esc(v)}"${String(s) === String(v) ? " selected" : ""}>${esc(l)}</option>`;
+  $("#cambi-filters").innerHTML = `<div class="frow">
+    <label>Ramo <select data-f="ramo">${opt("tutti", "Camera e Senato", cf.ramo)}${ramiAttivi().map(r => opt(r, RAMI[r].breve, cf.ramo)).join("")}</select></label>
+    <label>Anno <select data-f="anno">${opt("tutti", "Tutta la legislatura", cf.anno)}${anni.map(a => opt(a, a, cf.anno)).join("")}</select></label>
+    <label><input type="checkbox" data-f="tecnici"${cf.tecnici ? " checked" : ""}> Includi i passaggi dovuti allo scioglimento o al cambio di nome di un gruppo</label>
+  </div>`;
+  $("#cambi-filters").querySelectorAll("select[data-f]").forEach(s => s.onchange = () => { cf[s.dataset.f] = s.value; renderCambi(); });
+  $("#cambi-filters").querySelector("input[data-f=tecnici]").onchange = e => { cf.tecnici = e.target.checked; renderCambi(); };
+  const lista = tutti.filter(c => (cf.ramo === "tutti" || c.ramo === cf.ramo) && (cf.anno === "tutti" || c.d.startsWith(cf.anno)) && (cf.tecnici || (!c.sciolto && !c.stesso)));
+  const nome = c => { const m = D[c.ramo].membri[c.i]; return m ? `${m.nome} ${m.cognome}` : "?"; };
+  $("#cambi-list").innerHTML = `
+    <div class="card-head"><h3>${lista.length} ${lista.length === 1 ? "passaggio" : "passaggi"}</h3><span class="src">Fonte: adesioni ai gruppi su dati.camera.it e dati.senato.it</span></div>
+    ${lista.length ? `<div class="tbl-scroll"><table><thead><tr><th>Data</th><th>Parlamentare</th><th>Da</th><th></th><th>A</th></tr></thead><tbody>
+      ${lista.map(c => { const R = D[c.ramo]; return `<tr class="click" data-r="${c.ramo}" data-i="${c.i}"><td class="num">${fmtDate(c.d)}</td><td>${esc(nome(c))} <span class="src">${RAMI[c.ramo].breve}</span>${c.sciolto ? ' <span class="src">· gruppo sciolto</span>' : c.stesso ? ' <span class="src">· nuovo nome del gruppo</span>' : ""}</td><td title="${esc(gn(R, c.da))}">${esc(gl(R, c.da))}</td><td class="arrow">→</td><td title="${esc(gn(R, c.a))}">${esc(gl(R, c.a))}</td></tr>`; }).join("")}
+    </tbody></table></div>` : `<p class="empty">Nessun cambio di gruppo con questi filtri.</p>`}
+    <p class="note" style="margin-top:10px">Gli spostamenti tra componenti interne al Misto non sono cambi di gruppo e non compaiono. Clicca un nome per aprire la scheda del parlamentare.</p>`;
+  $("#cambi-list").querySelectorAll("tr.click").forEach(tr => tr.onclick = () => { pf.sel = [tr.dataset.r, +tr.dataset.i]; pf.attivi = false; location.hash = "#parlamentari"; });
+  const flussi = {};
+  lista.forEach(c => {
+    const a = c.ramo + ":" + c.da, b = c.ramo + ":" + c.a;
+    flussi[a] = flussi[a] || { out: 0, in: 0 }; flussi[b] = flussi[b] || { out: 0, in: 0 };
+    flussi[a].out++; flussi[b].in++;
+  });
+  const rows = Object.entries(flussi).map(([k, v]) => { const [r, g] = k.split(":"); return Object.assign({ r, g, net: v.in - v.out }, v); }).sort((a, b) => a.net - b.net || b.out - a.out);
+  const maxAbs = Math.max(1, ...rows.map(r => Math.max(r.in, r.out)));
+  $("#cambi-saldi").innerHTML = `
+    <div class="card-head"><h3>Uscite e ingressi per gruppo</h3><span class="src">${lista.length} ${lista.length === 1 ? "passaggio" : "passaggi"}</span></div>
+    ${rows.length ? `<div class="tbl-scroll"><table><thead><tr><th>Gruppo</th><th class="n">Uscite</th><th class="n">Ingressi</th><th class="n">Saldo</th><th style="width:34%"></th></tr></thead><tbody>
+      ${rows.map(x => `<tr><td>${esc(gl(D[x.r], x.g))} <span class="src">${RAMI[x.r].breve}</span></td><td class="n">${x.out}</td><td class="n">${x.in}</td><td class="n"><b>${fmtSigned(x.net, 0)}</b></td>
+        <td><div style="display:flex;gap:2px;align-items:center">
+          <span class="seatbar" style="width:${x.out / maxAbs * 50}%;background:var(--muted)" title="Uscite: ${x.out}"></span>
+          <span class="seatbar" style="width:${x.in / maxAbs * 50}%;background:var(--accent)" title="Ingressi: ${x.in}"></span></div></td></tr>`).join("")}
+    </tbody></table></div>
+    <div class="legend-row" style="margin-top:10px"><span><i class="swatch" style="background:var(--muted)"></i>Uscite</span><span><i class="swatch" style="background:var(--accent)"></i>Ingressi</span></div>` : `<p class="empty">Nessun passaggio.</p>`}`;
+}
+
+/* ===================== METODO ===================== */
+function renderMetodo() {
+  const m = D.meta && D.meta.rami ? D.meta.rami : {};
+  $("#metodo").innerHTML = `
+    <h3>Da dove arrivano i dati</h3>
+    <ul>
+      <li><b>Parlamentari, gruppi e votazioni</b>: dati aperti ufficiali della <a href="https://dati.camera.it/" target="_blank" rel="noopener">Camera dei deputati</a> (licenza CC BY-SA 4.0) e del <a href="https://dati.senato.it/" target="_blank" rel="noopener">Senato della Repubblica</a> (licenza CC BY 3.0), interrogati ogni notte attraverso i loro servizi pubblici (SPARQL). Vengono scaricate tutte le votazioni elettroniche della XIX legislatura, con il voto di ogni deputato e senatore.${m.camera ? ` Archivio attuale: ${m.camera.votazioni.toLocaleString("it-IT")} votazioni della Camera` : ""}${m.senato ? ` e ${m.senato.votazioni.toLocaleString("it-IT")} del Senato` : ""}.</li>
+      <li><b>Aggiornamento</b>: un processo automatico gira ogni notte, scarica le nuove votazioni, riscarica gli ultimi giorni (le istituzioni a volte pubblicano con qualche giorno di ritardo), aggiorna gruppi e cambi di gruppo, ricalcola tutti gli indicatori e pubblica il sito. Per ogni votazione controlla che la somma dei voti individuali coincida con il risultato ufficiale e segnala le differenze.</li>
+      <li><b>Votazioni in evidenza</b>: le 10 schede di contesto sono scritte e verificate a mano da resoconti di agenzie e testate, linkati in ogni scheda.</li>
+      <li><b>Leader e capigruppo</b>: i presidenti dei gruppi arrivano dai dati ufficiali quando sono pubblicati; altrimenti, come per i leader di partito e le famiglie politiche europee, sono verificati a mano (fonti sotto la tabella nella sezione Parlamento).</li>
+      <li><b>Governi</b>: <a href="${GOV_SRC.url}" target="_blank" rel="noopener">${GOV_SRC.label}</a>. <b>Economia</b>: PIL reale e rendimenti dei titoli di Stato (OCSE), PIL pro capite e inflazione (Banca Mondiale), debito e deficit (FMI fino al 2021, ISTAT dal 2022), disoccupazione e occupazione (OCSE), tramite il database FRED della Federal Reserve di St. Louis; pressione fiscale e povertà dai comunicati ISTAT. Questi dati sono annuali e si aggiornano a mano quando escono i nuovi valori.</li>
+    </ul>
+    <h3>Come sono calcolati gli indicatori</h3>
+    <ul>
+      <li><b>Posizione di un gruppo</b> in una votazione: l'opzione (Sì, No, astensione) scelta dal maggior numero dei suoi membri che hanno votato; "diviso" in caso di parità. È ricavata dai voti reali, non dall'indicazione ufficiale del gruppo, che non è un dato pubblicato.</li>
+      <li><b>Compattezza</b>: in media, quota dei votanti del gruppo che hanno seguito la posizione del gruppo. Considera le votazioni in cui hanno votato almeno due membri.</li>
+      <li><b>Partecipazione e presenze</b>: quota delle votazioni in cui il parlamentare, mentre era in carica, era presente (ha votato o era presente senza votare). Le missioni, cioè le assenze giustificate per incarichi istituzionali, sono contate a parte: per questo ministri e sottosegretari hanno spesso presenze basse e missioni alte.</li>
+      <li><b>Voti diversi dal gruppo</b>: votazioni palesi in cui il parlamentare ha votato in modo diverso dalla posizione del suo gruppo in quel momento. Non si calcola per il Misto, che non ha una linea comune.</li>
+      <li><b>Vota come la maggioranza</b>: quota delle votazioni palesi in cui la posizione del gruppo coincide con quella prevalente tra i membri dei gruppi di maggioranza. Quali gruppi sono di maggioranza è scritto in un file di configurazione (oggi: Fratelli d'Italia, Lega, Forza Italia, Noi Moderati / Civici d'Italia).</li>
+      <li><b>Convergenza</b> tra due gruppi: quota delle votazioni palesi in cui entrambi hanno preso una posizione e questa era la stessa.</li>
+      <li><b>Tipo di votazione</b> (voto finale, emendamento, ordine del giorno…): ricavato dalla descrizione ufficiale della votazione e dai campi che segnalano voto finale e fiducia.</li>
+      <li><b>Esclusioni</b>: le verifiche del numero legale non sono voti nel merito e sono escluse da tutti gli indicatori; nei voti a scrutinio segreto si sa solo chi ha partecipato, quindi non ci sono posizioni.</li>
+    </ul>
+    <h3>Limiti da conoscere</h3>
+    <ul>
+      <li>Il gruppo Misto è trattato come un unico gruppo: le componenti politiche interne (per esempio +Europa alla Camera o Alleanza Verdi e Sinistra al Senato) non sono pubblicate nei dati aperti.</li>
+      <li>Al Senato il Presidente di turno di norma non vota e risulta quindi poco presente; i dati ufficiali di presenza del Senato escludono anche Presidente, vicepresidenti e questori.</li>
+      <li>Se un'istituzione corregge un dato già pubblicato, la correzione arriva nel sito al primo aggiornamento successivo.</li>
+      <li><b>Nessun giudizio</b>: l'app non assegna etichette ideologiche e non dà voti ai partiti. Mostra cosa hanno votato e cosa dicono i dati ufficiali.</li>
+      <li><b>Anni dei governi</b>: ogni anno solare va al governo in carica per più giorni in quell'anno; i dati economici descrivono cosa è successo durante un governo, non ne misurano il merito.</li>
+    </ul>`;
+}
+
+/* ===================== ROUTING E AVVIO ===================== */
+const VIEWS = ["parlamento", "forze", "voti", "parlamentari", "cambi", "governi", "metodo"];
+function route() {
+  const h = (location.hash || "#parlamento").slice(1);
+  const v = VIEWS.includes(h) ? h : "parlamento";
+  VIEWS.forEach(x => $("#v-" + x).classList.toggle("active", x === v));
+  document.querySelectorAll("nav.tabs a").forEach(a => { if (a.getAttribute("href") === "#" + v) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
+  hideTip();
+  if (v === "governi") renderChart();
+  if (v === "parlamentari" && D.ok) { renderParlFilters(); renderParlTable(); renderParlDet(); }
+}
+window.addEventListener("hashchange", () => { route(); window.scrollTo(0, 0); });
+let rT; window.addEventListener("resize", () => { clearTimeout(rT); rT = setTimeout(() => { if ($("#v-governi").classList.contains("active")) renderChart(); }, 120); });
+
+renderIndPicker(); renderGovCard(); renderGovTable();
+renderEvidenza(); renderMetodo();
+route();
+caricaDati().then(() => {
+  renderStato();
+  if (D.ok) preparaVoti();
+  if (D.ok) { renderTiles(); renderLeaders(); } else { $("#leaders").hidden = true; }
+  renderChamber("camera", $("#card-camera"), 12);
+  renderChamber("senato", $("#card-senato"), 8);
+  renderForze();
+  renderVoteFilters(); renderVotesList();
+  renderParlFilters(); renderParlTable();
+  renderCambi();
+  renderMetodo();
+  route();
+});
+
+</script>
+</body>
+</html>

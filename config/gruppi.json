@@ -1,0 +1,17 @@
+{
+  "_istruzioni": "Ogni gruppo ufficiale viene confrontato (senza distinguere maiuscole) con le regole nell'ordine scritto: vale la prima che trova il testo in 'sigla nome'. 'coalizione' è maggioranza, opposizione o altro. Se cambia il governo, aggiorna qui le coalizioni: gli indicatori si ricalcolano al giro successivo senza riscaricare nulla.",
+  "regole": [
+    { "ramo": "*", "cerca": "fratelli d.italia|\\bfdi\\b", "chiave": "fdi", "breve": "FdI", "coalizione": "maggioranza" },
+    { "ramo": "*", "cerca": "\\blega\\b", "chiave": "lega", "breve": "Lega", "coalizione": "maggioranza" },
+    { "ramo": "*", "cerca": "forza italia|\\bfi-ppe\\b", "chiave": "fi", "breve": "FI", "coalizione": "maggioranza" },
+    { "ramo": "*", "cerca": "noi moderati|civici d.italia|\\bnm\\b|n\\.m\\.", "chiave": "nm", "breve": "NM", "coalizione": "maggioranza" },
+    { "ramo": "*", "cerca": "partito democratico|\\bpd-idp\\b", "chiave": "pd", "breve": "PD", "coalizione": "opposizione" },
+    { "ramo": "*", "cerca": "movimento 5 stelle|\\bm5s\\b", "chiave": "m5s", "breve": "M5S", "coalizione": "opposizione" },
+    { "ramo": "*", "cerca": "alleanza verdi|\\bavs\\b", "chiave": "avs", "breve": "AVS", "coalizione": "opposizione" },
+    { "ramo": "*", "cerca": "azione.{0,6}italia viva|\\ba-iv\\b", "chiave": "aziv", "breve": "Azione-IV", "coalizione": "opposizione" },
+    { "ramo": "*", "cerca": "italia viva|\\biv-c-re\\b", "chiave": "iv", "breve": "IV", "coalizione": "opposizione" },
+    { "ramo": "*", "cerca": "^\\s*azione|\\bazione\\s*-\\s*popolari|\\baz-per", "chiave": "az", "breve": "Azione", "coalizione": "opposizione" },
+    { "ramo": "*", "cerca": "autonomie", "chiave": "aut", "breve": "Autonomie", "coalizione": "altro" },
+    { "ramo": "*", "cerca": "misto", "chiave": "misto", "breve": "Misto", "coalizione": "altro" }
+  ]
+}

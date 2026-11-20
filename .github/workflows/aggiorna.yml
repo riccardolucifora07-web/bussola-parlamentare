@@ -1,0 +1,88 @@
+name: Aggiornamento quotidiano
+
+on:
+  schedule:
+    - cron: "17 3 * * *"        # ogni notte alle 3:17 UTC (4:17 in inverno, 5:17 in estate in Italia)
+  workflow_dispatch:            # pulsante "Run workflow" nella scheda Actions
+    inputs:
+      ramo:
+        description: "Ramo da aggiornare"
+        type: choice
+        options: [tutti, camera, senato]
+        default: tutti
+      max_minuti:
+        description: "Minuti massimi di scaricamento (al primo giro serve tanto tempo)"
+        default: "330"
+  push:                         # se modifichi il sito o le regole, ripubblica subito
+    branches: [main]
+    paths: ["site/**", "config/**", "scripts/**", ".github/workflows/**"]
+
+permissions:
+  contents: write    # per salvare i dati nel ramo "dati"
+  pages: write       # per pubblicare il sito
+  id-token: write
+
+concurrency:
+  group: aggiornamento
+  cancel-in-progress: false
+
+jobs:
+  aggiorna:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    environment:
+      name: github-pages
+      url: ${{ steps.pubblica.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Prova automatica con dati finti (blocca tutto se il codice è rotto)
+        run: python test/prova.py
+
+      - name: Recupera i dati già scaricati
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          git clone -q --depth 1 --branch dati "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" dati \
+            || { echo "Primo avvio: nessun dato salvato, scarico tutta la legislatura"; mkdir -p dati; }
+          rm -rf dati/.git
+
+      - name: Scarica le novità da Camera e Senato e ricalcola gli indicatori
+        env:
+          RAMO: ${{ inputs.ramo || 'tutti' }}
+          MAXMIN: ${{ inputs.max_minuti || '330' }}
+          EVENTO: ${{ github.event_name }}
+        run: |
+          EXTRA=""
+          if [ "$EVENTO" = "push" ] && [ -f dati/meta.json ]; then EXTRA="--solo-calcoli"; fi
+          python scripts/aggiorna.py --dati dati --ramo "$RAMO" --max-minuti "$MAXMIN" $EXTRA
+
+      - name: Salva i dati nel ramo "dati"
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          cd dati
+          git init -q -b dati
+          git add -A
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q --allow-empty -m "Dati aggiornati al $(date -u +%Y-%m-%d)"
+          git push -q -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" dati
+
+      - name: Prepara il sito
+        run: |
+          rm -rf _site
+          cp -r site _site
+          rm -rf _site/data
+          cp -r dati _site/data
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: pubblica
+        uses: actions/deploy-pages@v4
