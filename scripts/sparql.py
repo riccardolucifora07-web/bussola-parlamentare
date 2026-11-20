@@ -110,7 +110,8 @@ class Endpoint:
                 # 400 = query sbagliata: inutile ritentare
                 if e.code == 400 or (e.code < 500 and e.code not in (403, 408, 429)):
                     raise ErroreSparql(f"{self.nome}: HTTP {e.code} {corpo}") from e
-                self.log(f"  [{self.nome}] HTTP {e.code}, nuovo tentativo {n}/{self.tentativi} tra {attesa}s")
+                riga = " ".join(corpo.split())[:240]
+                self.log(f"  [{self.nome}] HTTP {e.code}{': ' + riga if riga else ''}; nuovo tentativo {n}/{self.tentativi} tra {attesa}s")
             except (urllib.error.URLError, socket.timeout, TimeoutError, ConnectionError,
                     json.JSONDecodeError, ErroreSparql) as e:
                 ultimo = e
