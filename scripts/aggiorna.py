@@ -24,7 +24,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import camera  # noqa: E402
 import senato  # noqa: E402
 from calcoli import Calcolo, in_carica, unisci_intervalli  # noqa: E402
-from comune import CATEGORIE, categoria, leggi_json, nome_locale, scrivi_json  # noqa: E402
+from comune import CATEGORIE, categoria, leggi_json, nome_locale, pulisci_testo, scrivi_json  # noqa: E402
 from sparql import Endpoint  # noqa: E402
 
 RADICE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -93,9 +93,10 @@ def costruisci_record(v, k, indice_uri, membri_per_i):
         i = indice_uri.get(uri)
         if i is not None:
             codici[i] = c
+    v["o"], v["t"] = pulisci_testo(v.get("o")), pulisci_testo(v.get("t"))
     testo = " ".join(x for x in (v.get("o"), v.get("t")) if x)
     legale = v.get("numero_legale") or bool(re.search(r"numero legale", testo, re.I))
-    cat = categoria(testo, v.get("finale"), v.get("fiducia"), legale)
+    cat = categoria(testo, v.get("finale"), v.get("fiducia"), legale, v.get("tipo", ""))
     flag = ("F" if cat == "finale" or v.get("finale") else "") + ("S" if v.get("segreta") else "") + \
            ("Q" if v.get("fiducia") else "") + ("L" if legale else "")
     t = v.get("tot", {})

@@ -118,9 +118,9 @@ SELECT DISTINCT ?data WHERE {{
 
 
 def _filtro_giorno(giorno):
-    # la data è pubblicata come "20261119"; si accetta anche il formato "2026-11-19"
-    return (f'?v a ocd:votazione ; dc:date ?d . '
-            f'FILTER (str(?d) = "{giorno.replace("-", "")}" || str(?d) = "{giorno}")')
+    # la data è pubblicata come letterale semplice "20261119": il confronto diretto usa
+    # l'indice dell'endpoint (meno di un secondo), mentre un FILTER su str() lo scorre tutto
+    return f'?v a ocd:votazione ; dc:date "{giorno.replace("-", "")}" .'
 
 
 def votazioni_giorno(ep, giorno):
@@ -180,20 +180,21 @@ SELECT ?dep ?espr WHERE {{ ?voto ocd:rif_votazione <{uri}> ; ocd:rif_deputato ?d
         p = v["prop"]
         uno = lambda k: (p.get(k) or [None])[0]  # noqa: E731
         testo = lambda k: " · ".join(str(x) for x in p.get(k, []) if x)  # noqa: E731
-        num = uno("numeroVotazione") or uno("numero") or uno("identifier")
-        try:
-            num = int(re.sub(r"\D", "", str(num))[-4:]) if num is not None else None
-        except ValueError:
-            num = None
         seduta = uno("rif_seduta")
+        num = _numero(uno("numeroVotazione") or uno("numero") or uno("identifier"), seduta)
+        descr = testo("description") or testo("label")
+        titolo = re.sub(r"^\s*Votazione\s*(finale)?\s*", "", testo("title"), flags=re.I).strip()
+        if titolo and titolo.lower() in descr.lower():
+            titolo = ""
+        link = next((str(x) for x in p.get("relation", []) if str(x).startswith("http")), None)
         out.append({
             "id": uri,
             "d": giorno,
             "n": num,
             "seduta": nome_locale(seduta) if seduta else None,
-            "t": " · ".join(titoli_atti.get(uri, [])) or testo("title"),
-            "o": testo("description") or testo("label"),
-            "tipo": testo("type") if not str(uno("type") or "").startswith("http") else "",
+            "t": " · ".join(titoli_atti.get(uri, [])) or titolo,
+            "o": descr,
+            "tipo": " ".join(str(x) for x in p.get("type", []) if x and not str(x).startswith("http")),
             "esito": _bool(uno("approvato")),
             "finale": bool(_bool(uno("votazioneFinale"))),
             "segreta": bool(_bool(uno("votazioneSegreta"))),
@@ -201,10 +202,24 @@ SELECT ?dep ?espr WHERE {{ ?voto ocd:rif_votazione <{uri}> ; ocd:rif_deputato ?d
             "numero_legale": False,
             "tot": {k: _int(uno(k)) for k in ("presenti", "votanti", "favorevoli", "contrari", "astenuti", "maggioranza")},
             "voti": voti.get(uri, {}),
-            "url": uri,
+            "url": link or uri,
         })
     out.sort(key=lambda x: (x["n"] is None, x["n"] or 0, x["id"]))
     return out
+
+
+def _numero(identificativo, seduta):
+    """dc:identifier è seduta*1000 + numero (es. 747001 = seduta 747, votazione 1)."""
+    try:
+        ident = int(re.sub(r"\D", "", str(identificativo)))
+    except (TypeError, ValueError):
+        return None
+    m = re.search(r"_(\d+)$", str(seduta or ""))
+    if m:
+        n = ident - int(m.group(1)) * 1000
+        if 0 < n < 100000:
+            return n
+    return ident % 1000 or None
 
 
 def _bool(x):

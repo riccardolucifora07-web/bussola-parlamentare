@@ -1,5 +1,6 @@
 """Funzioni comuni: date, nomi, file JSON, classificazione delle votazioni."""
 import gzip
+import html
 import json
 import os
 import re
@@ -143,25 +144,45 @@ CATEGORIE = {
 _REGOLE_CAT = [
     ("fiducia", re.compile(r"fiducia", re.I)),
     ("finale", re.compile(r"vot[oa]\w*\s+finale|votazione finale|nel suo complesso|voto finale", re.I)),
-    ("pregiudiziale", re.compile(r"pregiudizial|sospensiv", re.I)),
+    ("pregiudiziale", re.compile(r"pregiudizial|\bquest\.?\s+preg|sospensiv", re.I)),
     ("odg", re.compile(r"ordin[ei] del giorno|\bo\.?d\.?g\b|\bodg\b|^\s*9/", re.I)),
-    ("mozione", re.compile(r"mozion|risoluzion", re.I)),
-    ("emendamento", re.compile(r"\bemm?\.|emendament|subem|\bem\s+\d", re.I)),
-    ("articolo", re.compile(r"\bart(?:icol[oi]|t?\.)\s*\d|\barticolo\b", re.I)),
+    ("mozione", re.compile(r"mozion|risoluzion|\bmoz\b|\bris\b", re.I)),
+    ("emendamento", re.compile(r"\b(?:sub)?emm?\b|\bemm?\.|emendament|subem|\bart\.?\s+(?:agg|prem)", re.I)),
+    ("articolo", re.compile(r"\bart(?:icol[oi]|t?\.)?\s*\d|\barticolo\b|\bart\b", re.I)),
 ]
 
+# tipo dichiarato dalla Camera (dc:type della votazione): vale più della descrizione
+_TIPI = [("fiducia", "fiducia"), ("finale", "finale"), ("emendament", "emendamento"),
+         ("ordine del giorno", "odg"), ("mozion", "mozione"), ("risoluzion", "mozione"),
+         ("articol", "articolo"), ("pregiudizial", "pregiudiziale")]
 
-def categoria(testo, finale=False, fiducia=False, numero_legale=False):
+
+def categoria(testo, finale=False, fiducia=False, numero_legale=False, tipo=""):
     if numero_legale:
         return "numero_legale"
     if fiducia:
         return "fiducia"
     if finale:
         return "finale"
+    t = (tipo or "").lower()
+    for chiave, nome in _TIPI:
+        if chiave in t:
+            return nome
     for nome, rx in _REGOLE_CAT:
         if testo and rx.search(testo):
             return nome
     return "altro"
+
+
+def pulisci_testo(s):
+    """Toglie le entità HTML (anche doppie, come '&amp;#39;') e gli spazi superflui."""
+    s = str(s or "")
+    for _ in range(3):
+        nuovo = html.unescape(s)
+        if nuovo == s:
+            break
+        s = nuovo
+    return " ".join(s.split())
 
 
 # ---------- codici dei voti individuali ----------
