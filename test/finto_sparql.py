@@ -200,6 +200,8 @@ def risposta(nome, q):
     elif nome == "camera_voti":
         for v in [v for v in D_["cvot"] if v["d"] == giorno and f"<{v['uri']}>" in q]:
             righe += [{"v": U(v["uri"]), "dep": U(d), "espr": L(e)} for d, e in v["voti"].items()]
+            # come nella banca dati vera: a volte compare un "deputato 0" che non è nei totali ufficiali
+            righe.append({"v": U(v["uri"]), "dep": U("http://dati.camera.it/ocd/deputato.rdf/d0_19"), "espr": L("Favorevole")})
     elif nome == "senato_senatori":
         for s in D_["sen"]:
             if s["vita"]:

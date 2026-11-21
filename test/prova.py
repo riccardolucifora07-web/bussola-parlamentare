@@ -93,6 +93,8 @@ def main():
         assert st["tot"] == 24 and st["pres"] + st["mis"] + st["ass"] == st["tot"], st
 
         # --- Senato
+        C_ = leggi(os.path.join(dati, "camera", "membri.json"))
+        assert not any("d0_" in m["id"] for m in C_["membri"]), "il deputato 0 non è una persona"
         S = leggi(os.path.join(dati, "senato", "membri.json"))
         assert not any(m["cognome"] == "Deputato" and m["mandati"] for m in S["membri"]), "i mandati alla Camera non sono senatori"
         segre = next(m for m in S["membri"] if m["cognome"] == "Segre")

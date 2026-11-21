@@ -124,25 +124,44 @@ def costruisci_record(v, k, indice_uri, membri_per_i):
         "e": None if v.get("esito") is None else int(bool(v["esito"])),
         "tot": tot, "v": "".join(codici).rstrip("."), "u": v.get("url"),
     }
-    conta = {x: rec["v"].count(x) for x in "FCA"}
-    if not v.get("segreta") and tot[2] is not None and conta["F"] + conta["C"] + conta["A"] > 0:
-        diff = [conta["F"] - (tot[2] or 0), conta["C"] - (tot[3] or 0), conta["A"] - (tot[4] or 0)]
-        if any(diff):
-            rec["chk"] = diff
+    controlla_totali(rec)
     return rec
 
 
+def controlla_totali(rec):
+    """Segna le votazioni in cui i voti nominali non tornano con i totali ufficiali (F, C, A)."""
+    rec.pop("chk", None)
+    t = rec.get("tot") or []
+    conta = {x: rec["v"].count(x) for x in "FCA"}
+    if "S" not in rec.get("f", "") and len(t) > 4 and t[2] is not None and conta["F"] + conta["C"] + conta["A"] > 0:
+        diff = [conta["F"] - (t[2] or 0), conta["C"] - (t[3] or 0), conta["A"] - (t[4] or 0)]
+        if any(diff):
+            rec["chk"] = diff
+
+
 def normalizza_assenti(votazioni, membri):
-    """Chi risultava 'assente' in una data in cui non era in carica (mandati corretti dopo) diventa 'non in carica'."""
+    """Chi risultava 'assente' in una data in cui non era in carica (mandati corretti dopo) diventa 'non in carica';
+    i voti dei codici segnaposto (es. il 'deputato 0' della Camera) vengono tolti."""
     fuori = [i for i, m in enumerate(membri) if m["mandati"] != [[INIZIO_LEG, None]]]
+    finti = {i for i, m in enumerate(membri) if segnaposto(m["id"])}
     for v in votazioni:
         s = v.get("v", "")
-        cambi = [i for i in fuori if i < len(s) and s[i] == "-" and not in_carica(membri[i]["mandati"], v["d"])]
+        cambi = [i for i in fuori if i < len(s) and s[i] != "." and
+                 (i in finti or (s[i] == "-" and not in_carica(membri[i]["mandati"], v["d"])))]
         if cambi:
             lista = list(s)
             for i in cambi:
                 lista[i] = "."
             v["v"] = "".join(lista).rstrip(".")
+            controlla_totali(v)
+
+
+SEGNAPOSTO = re.compile(r"/d0_\d+$")
+
+
+def segnaposto(uri):
+    """Il 'deputato 0' della banca dati della Camera non è una persona: i suoi voti non sono nei totali ufficiali."""
+    return bool(SEGNAPOSTO.search(uri or ""))
 
 
 # ---------- anagrafe ----------
@@ -252,6 +271,8 @@ def aggiorna_ramo(ramo, dati_dir, scadenza, rifai, endpoint_url, solo_calcoli, r
             except Exception as e:  # noqa: BLE001
                 avviso(f"{ramo}: impossibile scaricare {u['k']} ({e})")
                 continue
+            for v in vot:
+                v["voti"] = {uri: c for uri, c in v["voti"].items() if not segnaposto(uri)}
             ignoti = {uri for v in vot for uri in v["voti"] if uri not in indice_uri}
             if ignoti:
                 extra = senato.membri_extra(ep, ignoti) if ramo == "senato" else {}
