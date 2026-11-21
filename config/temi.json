@@ -225,7 +225,9 @@
         "\\beventi calamitosi",
         "\\bmontan",
         "\\bsiccita",
-        "\\blagun"
+        "\\blagun",
+        "\\banimali\\b",
+        "\\bcani\\b"
       ]
     },
     {
@@ -282,7 +284,11 @@
         "\\bcrisi d ?impresa",
         "\\bfiliera",
         "\\bmaterie prime",
-        "\\bmateria economica"
+        "\\bmateria economica",
+        "\\bestetist",
+        "\\bparrucchier",
+        "\\bprofessioni\\b",
+        "\\bordini professionali"
       ]
     },
     {
@@ -373,7 +379,10 @@
         "\\bministeri\\b",
         "\\bautonomi[ae] local",
         "\\bconflitt[oi] di interess",
-        "\\bsemplificazione normativa"
+        "\\bsemplificazione normativa",
+        "\\bonorific",
+        "\\banagraf",
+        "\\bmedaglie"
       ]
     },
     {
@@ -414,7 +423,10 @@
         "\\bbody shaming",
         "\\bfine vita",
         "\\bdipendenze",
-        "\\bgioco d ?azzardo"
+        "\\bgioco d ?azzardo",
+        "\\bindigent",
+        "\\bsenza fissa dimora",
+        "\\bneonat"
       ]
     },
     {
@@ -445,7 +457,12 @@
         "\\bstoric",
         "\\bcucina",
         "\\bfesta nazionale",
-        "\\bcammini"
+        "\\bcammini",
+        "\\bfestivit",
+        "\\bsolennita",
+        "\\btelevision",
+        "\\bcanone di abbonamento",
+        "\\bpresepi"
       ]
     },
     {

@@ -94,7 +94,8 @@ def nome_gruppo(s):
 def pulisci_nome_gruppo(s):
     if not s:
         return ""
-    s = re.sub(r"\s*\((?:dal|dall'|\d)[^)]*\)\s*$", "", str(s).strip(), flags=re.I)
+    # "(18.10.2022)" o "(dal ...)" in fondo, anche senza la parentesi di chiusura (la Camera a volte la omette)
+    s = re.sub(r"\s*\((?:dal|dall'|\d)[^)]*\)?\s*$", "", str(s).strip(), flags=re.I)
     return " ".join(s.split())
 
 

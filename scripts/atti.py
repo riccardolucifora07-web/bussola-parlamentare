@@ -6,6 +6,7 @@ titolo della legge. Qui si ricava per ogni votazione il numero dell'atto Camera
 ufficiale "(3148)" o, se manca, dalla votazione precedente della stessa seduta) e il
 titolo della legge (dai titoli già presenti nell'archivio e da camera/atti.json,
 che l'aggiornamento notturno completa chiedendo i titoli mancanti all'endpoint)."""
+import html
 import re
 
 R_PREFISSO = re.compile(r"\b(?:DDL|PDL|PDLC)(?:\s+COST)?\s+(?:n\.\s*)?0*(\d+)", re.I)
@@ -24,7 +25,7 @@ MAX_TITOLO = 200
 
 
 def pulisci_titolo(s):
-    s = re.sub(r"<[^>]+>", "", str(s or ""))
+    s = html.unescape(html.unescape(re.sub(r"<[^>]+>", "", str(s or ""))))  # "l&rsquo;economia" -> "l’economia"
     m = R_VIRGOLETTE.search(s)
     if m:
         s = m.group(1)

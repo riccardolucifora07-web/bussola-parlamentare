@@ -28,7 +28,8 @@ import leggi as ddl  # noqa: E402
 import senato  # noqa: E402
 from temi import Temi  # noqa: E402
 from calcoli import Calcolo, in_carica, unisci_intervalli  # noqa: E402
-from comune import CATEGORIE, INIZIO_LEG, categoria, leggi_json, nome_locale, pulisci_testo, scrivi_json  # noqa: E402
+from comune import (CATEGORIE, INIZIO_LEG, categoria, leggi_json, nome_locale, pulisci_nome_gruppo,  # noqa: E402
+                    pulisci_testo, scrivi_json)
 from sparql import Endpoint  # noqa: E402
 
 RADICE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -352,6 +353,7 @@ def aggiorna_ramo(ramo, dati_dir, scadenza, rifai, endpoint_url, solo_calcoli, r
         raise RuntimeError("nessuna anagrafe salvata")
     membri, gruppi = anag["membri"], anag["gruppi"]
     for g in gruppi.values():  # riapplica le regole: si possono correggere senza riscaricare
+        g["nome"] = pulisci_nome_gruppo(g.get("nome", ""))
         g.update(classifica_gruppo(ramo, g.get("sigla", ""), g.get("nome", ""), regole))
     mesi = sorted(glob.glob(os.path.join(cart, "votazioni", "*.json")))
     per_file = [(p, leggi_json(p)["votazioni"]) for p in mesi]

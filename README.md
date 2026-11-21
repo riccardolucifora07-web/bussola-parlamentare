@@ -47,7 +47,7 @@ Da qui in poi non devi fare nulla: ogni notte arrivano le votazioni del giorno p
 
 > GitHub sospende gli aggiornamenti programmati dei repository fermi da 60 giorni. Per evitarlo il programma si riattiva da solo ogni notte. Se mai succedesse comunque, GitHub lo segnala per email e basta un clic: **Actions → Aggiornamento quotidiano → Enable workflow**.
 
-**Cosa si aggiorna da solo**: votazioni, composizione dei gruppi, cambi di gruppo, capigruppo di Camera e Senato, governo in carica, quali gruppi sono di maggioranza od opposizione (dai voti di fiducia) e l'elenco delle votazioni più rilevanti. **Cosa resta a mano**: i leader di partito, che non sono pubblicati in nessuna fonte aperta affidabile, e i dati economici annuali.
+**Cosa si aggiorna da solo**: votazioni, composizione dei gruppi, cambi di gruppo, capigruppo di Camera e Senato, governo in carica, quali gruppi sono di maggioranza od opposizione (dai voti di fiducia), l'elenco delle votazioni più rilevanti, il percorso di ogni legge (commissioni, relatori, firmatari, stato tra Camera e Senato), i temi e gli avvisi RSS per tema. **Cosa resta a mano**: i leader di partito, che non sono pubblicati in nessuna fonte aperta affidabile, e i dati economici annuali.
 
 ## Se qualcosa va storto
 
@@ -62,6 +62,7 @@ Da qui in poi non devi fare nulla: ogni notte arrivano le votazioni del giorno p
 | Cosa | Dove |
 |---|---|
 | Nomi brevi dei gruppi e collocazione di riserva (usata solo finché non ci sono almeno 3 voti di fiducia) | `config/gruppi.json`: gli indicatori si ricalcolano al giro dopo, senza riscaricare nulla |
+| Temi (energia, sanità, fisco...) e parole chiave che li riconoscono | `config/temi.json`: si possono aggiungere parole o temi nuovi, valgono dal giro dopo |
 | Leader di partito, famiglie europee, capigruppo di riserva | `site/index.html`, oggetto `PARTIES` |
 | Le 10 votazioni in evidenza con scheda di contesto | `site/index.html`, oggetto `VOTES` |
 | Dati economici (annuali) | `site/index.html`, oggetti `SERIES` e `INDICATORS` |
@@ -97,16 +98,22 @@ Altre opzioni di `aggiorna.py`:
 scripts/aggiorna.py    regia: anagrafe, votazioni, salvataggio, indicatori
 scripts/camera.py      query SPARQL della Camera
 scripts/senato.py      query SPARQL del Senato
+scripts/leggi.py       percorso delle leggi (dati del Senato, fasi alla Camera comprese)
+scripts/temi.py        temi di leggi e votazioni
+scripts/feed.py        avvisi RSS per tema
 scripts/calcoli.py     posizioni dei gruppi e indicatori (definizioni in testa al file)
 scripts/sparql.py      client HTTP con tentativi e paginazione
 scripts/comune.py      date, nomi, classificazione delle votazioni
 config/gruppi.json     attribuzione dei gruppi a maggioranza od opposizione
+config/temi.json       temi e parole chiave
 site/index.html        il sito
 test/                  endpoint finti e prova completa
 ```
 
 Dati prodotti (ramo `dati`, pubblicati in `data/`):
 - `meta.json`
+- `leggi.json`: ogni disegno di legge con le sue fasi, commissioni, relatori, primo firmatario e temi;
+- `feed/<tema>.xml` e `feed/tutto.xml`: avvisi RSS;
 - per ciascun ramo, `camera/` e `senato/`:
   - `membri.json`: anagrafe, gruppi, indicatori individuali;
   - `gruppi.json`: indicatori di gruppo, convergenza, cambi;

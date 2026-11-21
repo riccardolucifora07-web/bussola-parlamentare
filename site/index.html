@@ -330,6 +330,60 @@ tr.click:hover td, tr.click.sel td { background: var(--accent-soft); }
 [hidden] { display: none !important; }
 #parl-det { scroll-margin-top: 120px; }
 
+/* Leggi e temi */
+.stadio { font-size: 11.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--rule); color: var(--ink-2); white-space: nowrap; }
+.stadio.s-legge { background: var(--v-s); border-color: var(--v-s); color: #fff; }
+.stadio.s-approvato { border-color: var(--v-s); color: var(--v-s); }
+.stadio.s-aula, .stadio.s-commissione { background: var(--accent-soft); border-color: var(--accent-soft); color: var(--accent); }
+.stadio.s-chiuso { color: var(--muted); text-decoration: line-through; }
+.fasi { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--ink); }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.tags.inline { display: inline-flex; vertical-align: middle; margin-left: 4px; }
+a.tag { font-size: 11.5px; font-weight: 600; text-decoration: none; color: var(--accent); background: var(--accent-soft); border-radius: 999px; padding: 1px 8px; }
+a.tag:hover { text-decoration: underline; }
+h4.sez { font-family: var(--font-body); font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--accent); margin: 4px 0 0; }
+ol.iter { list-style: none; margin: 0; padding: 0 0 0 18px; display: grid; gap: 10px; border-left: 2px solid var(--rule); margin-left: 6px; font-size: 14px; }
+ol.iter li { position: relative; display: grid; gap: 2px; }
+ol.iter li::before { content: ""; position: absolute; left: -25px; top: 5px; width: 10px; height: 10px; border-radius: 50%; background: var(--surface); border: 2px solid var(--muted); }
+ol.iter li.s-legge::before, ol.iter li.s-approvato::before { background: var(--v-s); border-color: var(--v-s); }
+ol.iter li.s-aula::before, ol.iter li.s-commissione::before { background: var(--accent); border-color: var(--accent); }
+.temi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+a.card.tema { text-decoration: none; color: inherit; display: grid; gap: 4px; padding: 12px 14px; }
+a.card.tema:hover { border-color: var(--accent); }
+a.card.tema.sel { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.tema-nome { font-weight: 600; font-size: 15px; }
+.stella { color: var(--v-a); }
+.tema-det { display: grid; gap: 12px; margin-top: 18px; }
+ul.eventi { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font-size: 14px; }
+ul.eventi li.nuovo { border-left: 3px solid var(--v-a); padding-left: 8px; }
+.feed-url { font: inherit; font-size: 13px; padding: 6px 10px; border: 1px solid var(--rule); border-radius: 8px; background: var(--band-1); color: var(--ink); width: min(520px, 100%); }
+details.avvisi { border: 1px solid var(--rule); border-radius: 8px; padding: 10px 12px; display: grid; gap: 8px; }
+details.avvisi[open] { display: grid; }
+
+/* Report da stampare o salvare in PDF */
+@media print {
+  .top, nav.tabs, .footer, .stato, button, #tip { display: none !important; }
+  body { background: #fff; }
+  .card { border: 0; box-shadow: none; padding: 0; }
+  body.stampa > *:not(#report) { display: none !important; }
+  body.stampa #report { display: block !important; }
+  @page { size: A4; margin: 15mm 14mm; }
+  #report { color: #000; font-size: 10.5pt; line-height: 1.45; }
+  #report h1 { font-size: 20pt; margin: 4mm 0 2mm; }
+  #report h2 { font-size: 13pt; margin: 6mm 0 2mm; border-bottom: 1px solid #999; padding-bottom: 1mm; break-after: avoid; }
+  #report table { font-size: 9.5pt; }
+  #report tr { break-inside: avoid; }
+  #report .rep-head { display: flex; justify-content: space-between; font-size: 9pt; color: #444; border-bottom: 2px solid #1e5b6b; padding-bottom: 2mm; }
+  #report .rep-sub { color: #333; margin-bottom: 3mm; }
+  #report .rep-metr { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3mm; margin: 4mm 0; }
+  #report .rep-metr div { border: 1px solid #bbb; border-radius: 2mm; padding: 2mm 3mm; display: grid; }
+  #report .rep-metr span, #report .rep-metr small { font-size: 8.5pt; color: #444; }
+  #report .rep-metr b { font-size: 14pt; }
+  #report .rep-foot { margin-top: 8mm; border-top: 1px solid #999; padding-top: 2mm; font-size: 8pt; color: #444; }
+  #report .vote, #report .stadio, #report .tab-bar span { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  #report a { color: #000; text-decoration: none; }
+}
+
 </style>
 </head>
 <body>
@@ -343,6 +397,8 @@ tr.click:hover td, tr.click.sel td { background: var(--accent-soft); }
       <a href="#parlamento">Parlamento</a>
       <a href="#forze">Forze politiche</a>
       <a href="#voti">Votazioni</a>
+      <a href="#leggi">Leggi</a>
+      <a href="#temi">Temi e avvisi</a>
       <a href="#parlamentari">Parlamentari</a>
       <a href="#cambi">Cambi di gruppo</a>
       <a href="#governi">Governi ed economia</a>
@@ -414,6 +470,30 @@ tr.click:hover td, tr.click.sel td { background: var(--accent-soft); }
     <p class="note" id="votes-count"></p>
     <div class="votes-list" id="votes-list"></div>
     <button class="chip more" id="votes-more" hidden>Mostra altre 50</button>
+  </section>
+
+  <!-- LEGGI -->
+  <section class="view" id="v-leggi">
+    <div class="view-head">
+      <h2>Il percorso delle leggi</h2>
+      <p class="lede">Tutti i disegni e le proposte di legge della legislatura, dalla presentazione all'approvazione: chi li ha presentati, in quale commissione sono, chi sono i relatori, a che punto sono tra Camera e Senato e come hanno votato i gruppi in Aula.</p>
+    </div>
+    <div class="tiles" id="leggi-tiles"></div>
+    <div class="card filters" id="leggi-filters"></div>
+    <p class="note" id="leggi-count"></p>
+    <div class="votes-list" id="leggi-list"></div>
+    <button class="chip more" id="leggi-more" hidden>Mostra altre 30</button>
+    <p class="note">Fonte: dati aperti del Senato, che seguono ogni legge anche nei passaggi alla Camera. Il lavoro nelle commissioni è descritto dallo stato della legge: i voti in commissione non sono nominali e non sono pubblicati come dati aperti.</p>
+  </section>
+
+  <!-- TEMI -->
+  <section class="view" id="v-temi">
+    <div class="view-head">
+      <h2>Temi e avvisi</h2>
+      <p class="lede">Leggi e votazioni divise per tema: energia, sanità, fisco, lavoro e altri. Per ogni tema trovi le ultime novità, le leggi in esame e come votano i gruppi, e puoi ricevere gli avvisi automatici.</p>
+    </div>
+    <div id="temi-box"></div>
+    <p class="note">Il tema è assegnato in automatico dal titolo della legge e dalla classificazione ufficiale del Senato: una legge può avere più temi. Le votazioni prendono il tema della legge su cui si vota.</p>
   </section>
 
   <!-- PARLAMENTARI -->
@@ -492,6 +572,7 @@ tr.click:hover td, tr.click.sel td { background: var(--accent-soft); }
   <p class="footer">Bussola Parlamentare · progetto indipendente · dati di Camera dei deputati (CC BY-SA 4.0) e Senato della Repubblica (CC BY 3.0), aggiornati ogni giorno; dati elaborati in licenza CC BY-SA 4.0. Nessuna valutazione politica: i dati sono riportati come pubblicati dalle istituzioni. <a href="#metodo">Note legali e privacy</a> · <a href="https://github.com/riccardolucifora07-web/bussola-parlamentare/issues" target="_blank" rel="noopener">Segnala un errore</a></p>
 </main>
 <div id="tip" role="tooltip"></div>
+<div id="report" hidden></div>
 
 <script>
 /* ===================== DATI CURATI A MANO (verificati a novembre 2026) ===================== */
@@ -1280,7 +1361,7 @@ function prepara(ramo, M, Gs, I) {
       dis: st.cmp ? st.dis / st.cmp : null, cambi: cambiN[m.i] || 0, st
     });
   });
-  const righe = I.righe.map((r, k) => ({ ramo, k, id: r[0], d: r[1], n: r[2], t: r[3] || "", o: r[4] || "", c: r[5], f: r[6] || "", e: r[7], F: r[8], C: r[9], A: r[10], p: r[11] || "", pm: r[12], uff: r[13], a: r[14] || null }));
+  const righe = I.righe.map((r, k) => ({ ramo, k, id: r[0], d: r[1], n: r[2], t: r[3] || "", o: r[4] || "", c: r[5], f: r[6] || "", e: r[7], F: r[8], C: r[9], A: r[10], p: r[11] || "", pm: r[12], uff: r[13], a: r[14] || null, temi: (r[15] || "").split(",").filter(Boolean) }));
   righe.forEach(r => { r.l = etichetta(r); r.q = (r.o + " " + r.l + " " + r.t + (r.a ? " " + r.a : "")).toLowerCase(); });
   return { ramo, G, membri, ordine: I.gruppi, righe, conv: Gs.convergenza, cambi: Gs.cambi };
 }
@@ -1288,6 +1369,7 @@ function prepara(ramo, M, Gs, I) {
 async function caricaDati() {
   try {
     D.meta = await getJSON("data/meta.json");
+    impostaTemi(D.meta.temi);
     for (const r of ["camera", "senato"]) {
       if (!D.meta.rami || !D.meta.rami[r] || !D.meta.rami[r].votazioni) continue;
       const [M, Gs, I] = await Promise.all(["membri", "gruppi", "indice"].map(f => getJSON(`data/${r}/${f}.json`)));
@@ -1464,7 +1546,7 @@ function renderForze() {
   const anni = Object.entries(g.anni || {}).filter(([, y]) => y.n || y.partecipazione != null);
   const bar = x => x == null ? '<span class="nd">n.d.</span>' : `<span class="cell-bar"><span class="num">${pct(x, 0)}</span><span class="track"><i style="width:${x * 100}%"></i></span></span>`;
   $("#party-card").innerHTML = `
-    <div class="party-head"><h3>${esc(g.nome)}</h3><span class="badge"><i class="swatch" style="background:${COAL[coal].color}"></i>${COAL[coal].long}</span></div>
+    <div class="party-head"><h3>${esc(g.nome)}</h3><div class="frow"><span class="badge"><i class="swatch" style="background:${COAL[coal].color}"></i>${COAL[coal].long}</span><button class="chip" data-report-gruppo="${fRamo}:${g.id}">Scarica il report (PDF)</button></div></div>
     <dl class="kv" style="margin:14px 0">
       <dt>${RAMI[fRamo].chi[0].toUpperCase() + RAMI[fRamo].chi.slice(1)} oggi</dt><dd class="num">${g.membri || 0}</dd>
       <dt>Presidente del gruppo</dt><dd>${capi ? esc(capi.join(", ")) + ' <span class="ok-badge">dato ufficiale</span>' : (c && (fRamo === "camera" ? c.cam : c.sen) ? esc(fRamo === "camera" ? c.cam : c.sen) + ' <span class="src">(verifica manuale)</span>' : '<span class="nd">n.d.</span>')}</dd>
@@ -1528,7 +1610,7 @@ function renderMatrix() {
 }
 
 /* ===================== VOTAZIONI ===================== */
-const vf = { ramo: "tutti", anno: "tutti", cat: "tutte", esito: "tutti", q: "", chiave: "", gpos: "", legale: false, rilevanti: false, n: 50 };
+const vf = { ramo: "tutti", anno: "tutti", cat: "tutte", esito: "tutti", q: "", chiave: "", gpos: "", legale: false, rilevanti: false, n: 50, tema: "", legge: null };
 /* Perché una votazione è "rilevante": criteri oggettivi, calcolati ogni giorno sui dati */
 function motivi(r) {
   const out = [];
@@ -1571,6 +1653,8 @@ function passaVoto(r, salta) {
   if (salta !== "cat" && vf.cat !== "tutte" && r.c !== vf.cat) return false;
   if (vf.esito !== "tutti" && r.e !== (vf.esito === "a" ? 1 : 0)) return false;
   if (vf.rilevanti && !motivi(r).length) return false;
+  if (vf.tema && !r.temi.includes(vf.tema)) return false;
+  if (vf.legge) { const x = leggeDelVoto(r); if (!x || x.id !== vf.legge) return false; }
   if (vf.parole && vf.parole.length && !vf.parole.every(w => r.q.includes(w))) return false;
   if (vf.chiave) {
     const c = posChiave(r, vf.chiave);
@@ -1589,9 +1673,11 @@ function renderVoteFilters() {
       <label>Ramo <select data-f="ramo">${opt("tutti", "Camera e Senato", vf.ramo)}${ramiAttivi().map(r => opt(r, RAMI[r].breve, vf.ramo)).join("")}</select></label>
       <label>Anno <select data-f="anno">${opt("tutti", "Tutti", vf.anno)}${anni.map(a => opt(a, a, vf.anno)).join("")}</select></label>
       <label>Esito <select data-f="esito">${opt("tutti", "Tutti", vf.esito)}${opt("a", "Approvate", vf.esito)}${opt("r", "Respinte", vf.esito)}</select></label>
+      <label>Tema <select data-f="tema">${opt("", "Tutti", vf.tema)}${L.ordineTemi.map(t => opt(t, L.temi[t], vf.tema)).join("")}</select></label>
       <label>Mostra <select data-f="rilevanti">${opt("", "Tutte le votazioni", vf.rilevanti ? "1" : "")}${opt("1", "Solo le più rilevanti", vf.rilevanti ? "1" : "")}</select></label>
       <label class="search">Cerca <input id="vote-q" type="search" placeholder="es. libri digitali, Ucraina, em. 3.12" value="${esc(vf.q)}"></label>
     </div>
+    ${vf.legge && L.perId[vf.legge] ? `<p class="note">Solo le votazioni sulla legge <b>${esc(titoloLegge(L.perId[vf.legge]))}</b>. <button class="link" id="vote-legge-via">Togli il filtro</button> · <a href="#leggi/${esc(vf.legge)}">percorso della legge</a></p>` : ""}
     <div class="chips" id="vote-cats" role="group" aria-label="Tipo di votazione"></div>
     <div class="frow">
       <label>Gruppo <select data-f="chiave">${opt("", "Qualsiasi", vf.chiave)}${CHIAVI.map(x => opt(x.k, x.l, vf.chiave)).join("")}</select></label>
@@ -1599,6 +1685,7 @@ function renderVoteFilters() {
       <label><input type="checkbox" data-f="legale"${vf.legale ? " checked" : ""}> Mostra anche le verifiche del numero legale</label>
     </div>`;
   $("#votes-filters").querySelectorAll("select[data-f]").forEach(s => s.onchange = () => { vf[s.dataset.f] = s.dataset.f === "rilevanti" ? !!s.value : s.value; if (s.dataset.f === "chiave" && !s.value) vf.gpos = ""; vf.n = 50; renderVoteFilters(); renderVotesList(); });
+  const via = $("#vote-legge-via"); if (via) via.onclick = () => { vf.legge = null; vf.n = 50; renderVoteFilters(); renderVotesList(); };
   $("#votes-filters").querySelector("input[data-f=legale]").onchange = e => { vf.legale = e.target.checked; vf.n = 50; renderVoteCats(); renderVotesList(); };
   let tq;
   $("#vote-q").oninput = e => { clearTimeout(tq); tq = setTimeout(() => { vf.q = e.target.value; vf.parole = vf.q.trim().toLowerCase().split(/\s+/).filter(Boolean); vf.n = 50; renderVoteCats(); renderVotesList(); }, 180); };
@@ -1619,7 +1706,9 @@ function vRow(r) {
   const seg = (k, cls, lab) => k ? `<span class="${cls}" style="flex:${k} 1 0" title="${lab}: ${k}"></span>` : "";
   const titolo = r.o ? r.l : r.t || "Votazione senza descrizione";
   const legge = r.a || ["emendamento", "articolo", "odg", "finale", "fiducia", "pregiudiziale"].includes(r.c);
-  const sub = r.o && r.t && r.t !== r.o && r.t !== r.l ? (legge ? `<b>Legge:</b> ${esc(r.t)}` : esc(r.t)) : (r.a ? `<b>Legge:</b> atto Camera n. ${esc(r.a)}` : "");
+  const lg = leggeDelVoto(r);
+  const sub = (r.o && r.t && r.t !== r.o && r.t !== r.l ? (legge ? `<b>Legge:</b> ${esc(r.t)}` : esc(r.t)) : (r.a ? `<b>Legge:</b> ${r.ramo === "camera" ? "atto Camera" : "disegno di legge Senato"} n. ${esc(r.a)}` : ""))
+    + (lg ? ` · <a href="#leggi/${esc(lg.id)}">percorso della legge</a>` : "") + (r.temi.length ? ` <span class="tags inline">${tagTemi(r.temi)}</span>` : "");
   const chips = r.c === "numero_legale" ? `<span>Serve solo a verificare che in Aula ci sia il numero minimo di presenti.</span>` : segreta ? `<span>Scrutinio segreto: il voto dei singoli non è pubblico.</span>`
     : R.ordine.map((gid, i) => { const c = r.p[i]; if (!c || c === ".") return ""; return `<span title="${esc(gn(R, gid))}">${esc(gl(R, gid))} ${chip(c)}</span>`; }).join("");
   return `<article class="card vrow" data-id="${r.ramo}:${r.k}">
@@ -1756,7 +1845,7 @@ async function renderParlDet() {
     return `<tr><td class="num">${fmtDate(r.d)}</td><td>${esc(r.o ? r.l : r.t)}${r.o && r.t && r.t !== r.l ? `<br><span class="src">${esc(r.t)}</span>` : ""}</td><td class="n">${chip(c)}</td><td class="n">${esc(gl(R, g))} ${chip(pg)}</td></tr>`;
   }).join("");
   el.innerHTML = `
-    <div class="party-head"><h3>${esc(m.nome)} ${esc(m.cognome)}</h3><button class="chip close" id="parl-chiudi">Chiudi</button></div>
+    <div class="party-head"><h3>${esc(m.nome)} ${esc(m.cognome)}</h3><div class="frow"><button class="chip" data-report-parl="${ramo}:${i}">Scarica il report (PDF)</button><button class="chip close" id="parl-chiudi">Chiudi</button></div></div>
     <p class="note" style="margin:6px 0 12px">${RAMI[ramo].nome} · ${m.attivo ? "in carica" : (m.fine ? "cessato dal mandato il " + fmtDate(m.fine) : "non in carica")}${m.tipo && /vita/i.test(m.tipo) ? " · senatore a vita" : ""}${capo ? " · " + capo : ""} · <a href="${esc(m.id)}" target="_blank" rel="noopener">scheda ufficiale</a></p>
     <div class="gov-metrics">
       <div class="gm"><span>Presenze</span><b>${pct(m.pres)}</b><small>${st.pres.toLocaleString("it-IT")} votazioni su ${st.tot.toLocaleString("it-IT")}</small></div>
@@ -1768,11 +1857,21 @@ async function renderParlDet() {
     </div>
     <h3 style="font-size:16px;margin:16px 0 6px">Gruppi</h3>
     <div class="hist">${storia}</div>
+    <h3 style="font-size:16px;margin:16px 0 6px">Proposte di legge</h3>
+    <div id="parl-proposte"><p class="loading">Carico le proposte di legge…</p></div>
     <h3 style="font-size:16px;margin:16px 0 6px">Quando ha votato diversamente dal suo gruppo</h3>
     ${righeDiv ? `<div class="tbl-scroll"><table><thead><tr><th>Data</th><th>Votazione</th><th class="n">Suo voto</th><th class="n">Gruppo</th></tr></thead><tbody>${righeDiv}</tbody></table></div>${div.length > 40 ? `<p class="src">Mostrate le 40 più recenti su ${st.dis.toLocaleString("it-IT")}.</p>` : ""}` : `<p class="empty">Nessuna votazione palese in cui abbia votato diversamente dal suo gruppo${m.g && R.G[m.g] && R.G[m.g].chiave === "misto" ? " (per il Misto il confronto non si fa)" : ""}.</p>`}
     <h3 style="font-size:16px;margin:16px 0 6px">Ultimi voti</h3>
     <div id="parl-ultimi"><p class="loading">Carico gli ultimi voti…</p></div>`;
   $("#parl-chiudi").onclick = () => { pf.sel = null; renderParlDet(); renderParlTable(); };
+  proposteDi(m).then(({ prime, relatore }) => {
+    const box = $("#parl-proposte"); if (!box || !(pf.sel && pf.sel[0] === ramo && pf.sel[1] === i)) return;
+    if (!L.ok) { box.innerHTML = `<p class="empty">Dati sulle proposte di legge non ancora disponibili.</p>`; return; }
+    const riga = x => `<li>${stadioBadge(x.st)} <a href="#leggi/${esc(x.id)}">${esc(titoloLegge(x))}</a> <span class="src">${x.fasi.map(f => esc(f.f)).join(" → ")} · ${fmtDate(x.dp)}</span></li>`;
+    box.innerHTML = `<p class="note">${prime.length ? `Primo firmatario di <b>${prime.length}</b> proposte, di cui ${prime.filter(x => x.st === "legge").length} diventate legge.` : "Nessuna proposta di legge come primo firmatario."}${relatore.length ? ` Relatore di ${relatore.length} leggi.` : ""}</p>
+      ${prime.length ? `<ul class="eventi">${prime.slice(0, 8).map(riga).join("")}</ul>${prime.length > 8 ? `<p class="src">Le altre ${prime.length - 8} sono nella sezione <a href="#leggi" data-leggi-cerca="${esc(m.cognome)}">Leggi</a>.</p>` : ""}` : ""}
+      ${relatore.length ? `<details><summary>Leggi di cui è relatore (${relatore.length})</summary><ul class="eventi">${relatore.slice(0, 15).map(riga).join("")}</ul></details>` : ""}`;
+  });
   const ultime = R.righe.filter(r => r.c !== "numero_legale").slice(-400);
   const mesi = [...new Set(ultime.slice(-30).map(r => r.d.slice(0, 7)))];
   try {
@@ -1850,12 +1949,17 @@ function renderMetodo() {
       <li><b>Convergenza</b> tra due gruppi: quota delle votazioni palesi in cui entrambi hanno preso una posizione e questa era la stessa.</li>
       <li><b>Tipo di votazione</b> (voto finale, emendamento, ordine del giorno…): ricavato dalla descrizione ufficiale della votazione e dai campi che segnalano voto finale e fiducia.</li>
       <li><b>Esclusioni</b>: le verifiche del numero legale non sono voti nel merito e sono escluse da tutti gli indicatori; nei voti a scrutinio segreto si sa solo chi ha partecipato, quindi non ci sono posizioni.</li>
+      <li><b>Percorso delle leggi</b>: ogni disegno di legge con le sue fasi alla Camera e al Senato (stato, date, commissione competente, relatori, primo firmatario, classificazione ufficiale TESEO) viene dai dati aperti del Senato, che seguono ogni legge anche nei passaggi alla Camera. Le votazioni in Aula sono collegate alla legge su cui si vota.</li>
+      <li><b>Temi</b>: assegnati in automatico cercando parole chiave nel titolo della legge e nelle voci della classificazione ufficiale; una legge può avere fino a tre temi e circa una su dieci non ne ha nessuno. Le votazioni prendono il tema della legge. Le regole sono nel file config/temi.json del progetto.</li>
+      <li><b>Avvisi</b>: per ogni tema c'è un feed RSS, aggiornato ogni notte, con le nuove proposte di legge, i cambi di stato e i voti finali degli ultimi quattro mesi. "Segui questo tema" resta salvato solo nel browser di chi lo usa.</li>
+      <li><b>Report</b>: le schede di parlamentari, gruppi, leggi e temi si possono stampare o salvare in PDF con il pulsante "Scarica il report", usando la stampa del browser.</li>
     </ul>
     <h3>Limiti da conoscere</h3>
     <ul>
       <li>Il gruppo Misto è trattato come un unico gruppo: le componenti politiche interne (per esempio +Europa alla Camera o Alleanza Verdi e Sinistra al Senato) non sono pubblicate nei dati aperti.</li>
       <li>Al Senato il Presidente di turno di norma non vota e risulta quindi poco presente; i dati ufficiali di presenza del Senato escludono anche Presidente, vicepresidenti e questori.</li>
       <li>Se un'istituzione corregge un dato già pubblicato, la correzione arriva nel sito al primo aggiornamento successivo.</li>
+      <li>I voti nelle commissioni non sono nominali e non sono pubblicati come dati aperti: del lavoro in commissione si vedono lo stato della legge, la commissione competente e i relatori.</li>
       <li><b>Nessun giudizio</b>: l'app non assegna etichette ideologiche e non dà voti ai partiti. Mostra cosa hanno votato e cosa dicono i dati ufficiali.</li>
       <li><b>Anni dei governi</b>: ogni anno solare va al governo in carica per più giorni in quell'anno; i dati economici descrivono cosa è successo durante un governo, non ne misurano il merito.</li>
     </ul>
@@ -1870,16 +1974,335 @@ function renderMetodo() {
     </ul>`;
 }
 
+/* ===================== LEGGI, TEMI, AVVISI E REPORT ===================== */
+const L = { ok: false, carica: null, lista: [], perId: {}, perFase: {}, temi: {}, ordineTemi: [], stadi: {} };
+const STADI = { legge: "Approvata definitivamente", approvato: "Approvato da un ramo", aula: "In Aula", commissione: "In commissione", presentato: "Presentato, esame non iniziato", chiuso: "Chiuso senza approvazione", altro: "Altro" };
+const RAMO_FASE = { C: "Camera", S: "Senato" };
+const norm = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+const memo = (k, v) => { try { if (v === undefined) return JSON.parse(localStorage.getItem("bussola." + k) || "null"); localStorage.setItem("bussola." + k, JSON.stringify(v)); } catch (e) { return null; } };
+function impostaTemi(elenco) { (elenco || []).forEach(t => { if (!L.temi[t.codice]) L.ordineTemi.push(t.codice); L.temi[t.codice] = t.nome; }); }
+function caricaLeggi() {
+  if (!L.carica) L.carica = getJSON("data/leggi.json").then(J => {
+    impostaTemi(J.temi);
+    L.stadi = J.stadi || STADI; L.aggiornato = J.aggiornato;
+    L.lista = (J.leggi || []).map(x => Object.assign(x, { q: norm([x.t, x.tb, x.chi, x.pf && x.pf.n, x.fasi.map(f => f.f + " " + f.f.replace(".", ". ")).join(" "), (x.teseo || []).join(" ")].join(" ")) }));
+    L.lista.forEach(x => { L.perId[x.id] = x; x.fasi.forEach(f => { L.perFase[f.f] = x; }); });
+    L.ok = true;
+    return L;
+  }).catch(e => { L.errore = e.message; return L; });
+  return L.carica;
+}
+const leggeDelVoto = r => r && r.a ? L.perFase[(r.ramo === "camera" ? "C." : "S.") + r.a] || null : null;
+const titoloLegge = x => x.tb || x.t;
+function linkFase(f) {
+  const [r, n] = f.f.split(".");
+  return r === "C" ? `https://www.camera.it/uri-res/N2Ls?urn:camera-it:parlamento:scheda.progetto.legge:camera;19.legislatura;${n}`
+    : `https://www.senato.it/leg/19/BGT/Schede/Ddliter/${f.u || n}.htm`;
+}
+function membroDa(uri) {
+  if (!uri) return null;
+  for (const r of ramiAttivi()) { const m = D[r].membri.find(x => x.id === uri); if (m) return m; }
+  return null;
+}
+const tagTemi = temi => (temi || []).filter(t => L.temi[t]).map(t => `<a class="tag" href="#temi/${t}">${esc(L.temi[t])}</a>`).join("");
+const stadioBadge = st => `<span class="stadio s-${st}">${esc(STADI[st] || st)}</span>`;
+function fasiLinea(x) { return x.fasi.map(f => `<span title="${esc(RAMO_FASE[f.f[0]] + ": " + f.s)}">${esc(f.f)}</span>`).join('<span class="arrow">→</span>'); }
+function chiPresenta(x) {
+  const pf = x.pf && x.pf.n ? x.pf.n : x.chi;
+  const m = x.pf && membroDa(x.pf.id);
+  const nome = m ? `<a href="#parlamentari" data-membro="${m.ramo}:${m.i}">${esc(pf)}</a>` : esc(pf || "n.d.");
+  return `${x.ini ? esc(x.ini === "Governo" ? "Disegno di legge del Governo" : "Iniziativa " + x.ini.toLowerCase()) + " · " : ""}presentato il ${fmtDate(x.dp)} da ${nome}${x.nf === 2 ? " e un altro firmatario" : x.nf > 2 ? ` e altri ${x.nf - 1} firmatari` : ""}`;
+}
+function votiDellaLegge(x) {
+  const fasi = new Set(x.fasi.map(f => f.f));
+  return TUTTE.filter(r => r.a && fasi.has((r.ramo === "camera" ? "C." : "S.") + r.a));
+}
+function posizioniGruppi(r) {
+  const R = D[r.ramo];
+  return R.ordine.map((gid, i) => { const c = r.p[i]; return c && c !== "." && c !== "-" ? `<span title="${esc(gn(R, gid))}">${esc(gl(R, gid))} ${chip(c)}</span>` : ""; }).join("");
+}
+
+/* ---- sezione Leggi ---- */
+const lf = { q: "", tema: "", st: "", ini: "", ramo: "", ord: "agg", n: 30, apri: null };
+function passaLegge(x) {
+  if (lf.apri) return x.id === lf.apri;
+  if (lf.tema && !(x.temi || []).includes(lf.tema)) return false;
+  if (lf.st && x.st !== lf.st) return false;
+  if (lf.ini && (lf.ini === "altro" ? ["Governo", "Parlamentare"].includes(x.ini) : x.ini !== lf.ini)) return false;
+  if (lf.ramo && x.fasi[x.fasi.length - 1].f[0] !== lf.ramo) return false;
+  if (lf.parole && lf.parole.length && !lf.parole.every(w => x.q.includes(w))) return false;
+  return true;
+}
+function renderLeggi() {
+  const box = $("#leggi-list");
+  if (!L.ok) {
+    box.innerHTML = `<p class="loading">${L.errore ? "Percorso delle leggi non ancora disponibile: arriverà con il prossimo aggiornamento notturno." : "Carico il percorso delle leggi…"}</p>`;
+    if (!L.errore) caricaLeggi().then(() => { if (L.ok || L.errore) renderLeggi(); });
+    return;
+  }
+  const tutte = L.lista, conta = st => tutte.filter(x => x.st === st).length;
+  $("#leggi-tiles").innerHTML = `
+    <div class="tile"><span class="tile-label">Disegni e proposte di legge</span><span class="tile-value">${tutte.length.toLocaleString("it-IT")}</span><span class="tile-sub">presentati alla Camera o al Senato in questa legislatura</span></div>
+    <div class="tile"><span class="tile-label">Approvati definitivamente</span><span class="tile-value">${conta("legge").toLocaleString("it-IT")}</span><span class="tile-sub">${tutte.filter(x => x.st === "legge" && x.ini === "Governo").length.toLocaleString("it-IT")} su iniziativa del Governo</span></div>
+    <div class="tile"><span class="tile-label">In esame adesso</span><span class="tile-value">${(conta("commissione") + conta("aula") + conta("approvato")).toLocaleString("it-IT")}</span><span class="tile-sub">in commissione, in Aula o approvati da un solo ramo</span></div>
+    <div class="tile"><span class="tile-label">Mai esaminati</span><span class="tile-value">${conta("presentato").toLocaleString("it-IT")}</span><span class="tile-sub">assegnati o da assegnare a una commissione</span></div>`;
+  const opt = (v, l, s) => `<option value="${esc(v)}"${String(s) === String(v) ? " selected" : ""}>${esc(l)}</option>`;
+  $("#leggi-filters").innerHTML = `
+    ${lf.apri && L.perId[lf.apri] ? `<p class="note">Stai vedendo una sola legge. <button class="link" id="leggi-tutte">Mostra tutte le leggi</button></p>` : ""}
+    <div class="frow">
+      <label class="search">Cerca <input id="leggi-q" type="search" placeholder="es. intelligenza artificiale, C.3133, Meloni" value="${esc(lf.q)}"></label>
+      <label>Tema <select data-f="tema">${opt("", "Tutti", lf.tema)}${L.ordineTemi.map(t => opt(t, L.temi[t], lf.tema)).join("")}</select></label>
+      <label>Stato <select data-f="st">${opt("", "Tutti", lf.st)}${Object.keys(STADI).filter(k => k !== "altro").map(k => opt(k, STADI[k], lf.st)).join("")}</select></label>
+      <label>Iniziativa <select data-f="ini">${opt("", "Tutte", lf.ini)}${opt("Governo", "Governo", lf.ini)}${opt("Parlamentare", "Parlamentari", lf.ini)}${opt("altro", "Regioni, CNEL, popolare", lf.ini)}</select></label>
+      <label>Ora al <select data-f="ramo">${opt("", "Camera o Senato", lf.ramo)}${opt("C", "Camera", lf.ramo)}${opt("S", "Senato", lf.ramo)}</select></label>
+      <label>Ordina <select data-f="ord">${opt("agg", "Ultime novità", lf.ord)}${opt("pres", "Ultime presentate", lf.ord)}</select></label>
+    </div>`;
+  $("#leggi-filters").querySelectorAll("select[data-f]").forEach(s => s.onchange = () => { lf[s.dataset.f] = s.value; lf.n = 30; lf.apri = null; renderLeggi(); });
+  const tutteBtn = $("#leggi-tutte"); if (tutteBtn) tutteBtn.onclick = () => { lf.apri = null; location.hash = "#leggi"; };
+  let tq;
+  $("#leggi-q").oninput = e => { clearTimeout(tq); tq = setTimeout(() => { lf.q = e.target.value; lf.parole = norm(lf.q).trim().split(/\s+/).filter(Boolean); lf.n = 30; lf.apri = null; renderLeggiLista(); }, 180); };
+  renderLeggiLista();
+}
+function renderLeggiLista() {
+  const box = $("#leggi-list");
+  let lista = L.lista.filter(passaLegge);
+  if (lf.ord === "pres") lista = lista.slice().sort((a, b) => (b.dp || "").localeCompare(a.dp || ""));
+  $("#leggi-count").textContent = `${lista.length.toLocaleString("it-IT")} leggi${lista.length > lf.n ? `, mostrate le prime ${lf.n}` : ""}.`;
+  box.innerHTML = lista.length ? lista.slice(0, lf.n).map(lRow).join("") : `<div class="card"><p class="note">Nessuna legge corrisponde ai filtri.</p></div>`;
+  const more = $("#leggi-more");
+  more.hidden = lista.length <= lf.n;
+  more.onclick = () => { lf.n += 30; renderLeggiLista(); };
+  if (lf.apri && lista.length === 1) apriLegge($("article.lrow", box));
+}
+function lRow(x) {
+  const ult = x.fasi[x.fasi.length - 1];
+  return `<article class="card vrow lrow" data-id="${esc(x.id)}">
+    <div class="vmeta">${stadioBadge(x.st)}<span class="fasi">${fasiLinea(x)}</span><span>· ${x.st === "legge" ? "approvata" : "ultimo passaggio"} il ${fmtDate(ult.ds || x.dp)}</span>${x.legge ? `<span class="flagtag">Legge n. ${esc(x.legge)}</span>` : ""}</div>
+    <h3 class="vt">${esc(titoloLegge(x))}</h3>
+    ${x.tb && x.t && x.t !== x.tb ? `<p class="sub">${esc(x.t)}</p>` : ""}
+    <p class="sub">${chiPresenta(x)}</p>
+    <p class="sub"><b>Ora:</b> ${esc(RAMO_FASE[ult.f[0]])}, ${esc(ult.s)}${ult.comm && ult.comm[0] ? ` · ${esc(ult.comm[0].n)}` : ""}</p>
+    ${x.temi && x.temi.length ? `<div class="tags">${tagTemi(x.temi)}</div>` : ""}
+    <button class="link" data-ldet aria-expanded="false">Percorso completo, commissioni, relatori e voti in Aula</button>
+    <div class="det"></div>
+  </article>`;
+}
+function percorsoHTML(x) {
+  return `<ol class="iter">${x.fasi.map(f => `<li class="s-${f.st}">
+      <div><b>${esc(RAMO_FASE[f.f[0]])} · ${esc(f.f)}</b> <span class="src">presentato il ${fmtDate(f.dp)}</span></div>
+      <div>${esc(f.s[0].toUpperCase() + f.s.slice(1))}${f.ds ? ` <span class="src">(${fmtDate(f.ds)})</span>` : ""}</div>
+      ${f.comm && f.comm.length ? `<div class="src">Commissione competente: ${f.comm.map(c => esc(c.n) + (c.sede ? ` in sede ${esc(c.sede)}` : "") + (c.d ? `, dal ${fmtDate(c.d)}` : "")).join("; ")}</div>` : ""}
+      ${f.rel && f.rel.length ? `<div class="src">Relator${f.rel.length > 1 ? "i" : "e"}: ${esc(f.rel.join(", "))}</div>` : ""}
+      <div class="src"><a href="${esc(linkFase(f))}" target="_blank" rel="noopener">scheda ufficiale</a></div>
+    </li>`).join("")}</ol>`;
+}
+function votiLeggeHTML(x, max = 12) {
+  const voti = votiDellaLegge(x);
+  if (!voti.length) return `<p class="empty">Nessuna votazione elettronica in Aula su questa legge${x.st === "presentato" ? ": l'esame non è ancora iniziato" : ""}.</p>`;
+  const chiave = voti.filter(r => ["finale", "fiducia"].includes(r.c));
+  const altri = voti.length - chiave.length;
+  const righe = (chiave.length ? chiave : voti.slice(0, max)).slice(0, max).map(r => {
+    const [F, C, A] = (r.uff && r.uff[0] != null) ? r.uff : [r.F, r.C, r.A];
+    return `<tr><td class="num">${fmtDate(r.d)}</td><td>${RAMI[r.ramo].breve}</td><td>${esc(CAT[r.c] || r.c)}${r.o && r.l && r.l !== CAT[r.c] ? `<br><span class="src">${esc(r.l)}</span>` : ""}</td><td>${r.e != null ? (r.e ? "Approvata" : "Respinta") : ""}<br><span class="src">${F || 0} sì · ${C || 0} no · ${A || 0} ast.</span></td><td><div class="gpos">${r.f.includes("S") ? '<span class="src">scrutinio segreto</span>' : posizioniGruppi(r)}</div></td></tr>`;
+  }).join("");
+  return `<div class="tbl-scroll"><table><thead><tr><th>Data</th><th>Ramo</th><th>Votazione</th><th>Esito</th><th>Posizione dei gruppi</th></tr></thead><tbody>${righe}</tbody></table></div>
+    <p class="note">${voti.length.toLocaleString("it-IT")} votazioni in Aula su questa legge${chiave.length ? `, di cui ${chiave.length} tra voti finali e fiducie (mostrati sopra) e ${altri.toLocaleString("it-IT")} su emendamenti, articoli e ordini del giorno` : ""}.</p>`;
+}
+function apriLegge(art) {
+  if (!art) return;
+  const x = L.perId[art.dataset.id];
+  const det = $(".det", art), btn = $("button[data-ldet]", art);
+  if (det.innerHTML) { det.innerHTML = ""; btn.setAttribute("aria-expanded", "false"); return; }
+  btn.setAttribute("aria-expanded", "true");
+  const voti = votiDellaLegge(x);
+  det.innerHTML = `
+    <h4 class="sez">Percorso</h4>${percorsoHTML(x)}
+    ${x.teseo && x.teseo.length ? `<p class="src">Classificazione ufficiale del Senato: ${esc(x.teseo.join(" · "))}</p>` : ""}
+    <h4 class="sez">Voti in Aula</h4>${votiLeggeHTML(x)}
+    <div class="frow">${voti.length ? `<button class="chip" data-vedi-voti="${esc(x.id)}">Vedi tutte le votazioni su questa legge</button>` : ""}<button class="chip" data-report-legge="${esc(x.id)}">Scarica il report (PDF)</button><a class="src" href="#leggi/${esc(x.id)}">link a questa legge</a></div>`;
+}
+
+/* ---- sezione Temi e avvisi ---- */
+const tf = { tema: null };
+function eventiTema(codice, giorni = 120) {
+  const da = new Date(Date.now() - giorni * DAY).toISOString().slice(0, 10), ev = [];
+  L.lista.forEach(x => {
+    if (!(x.temi || []).includes(codice)) return;
+    if (x.dp >= da) ev.push({ d: x.dp, tipo: "Nuova proposta", t: titoloLegge(x), x, sub: `${x.fasi[0].f} · ${x.ini === "Governo" ? "del Governo" : "presentata da " + (x.pf && x.pf.n || x.chi || "n.d.")}` });
+    const u = x.fasi[x.fasi.length - 1];
+    if (u.ds && u.ds >= da && u.st !== "presentato" && (u.ds !== x.dp || x.fasi.length > 1)) ev.push({ d: u.ds, tipo: STADI[u.st] || "Novità", t: titoloLegge(x), x, sub: `${u.f} · ${u.s}` });
+  });
+  TUTTE.forEach(r => {
+    if (r.d < da || !["finale", "fiducia"].includes(r.c) || !r.temi.includes(codice)) return;
+    const x = leggeDelVoto(r), [F, C, A] = (r.uff && r.uff[0] != null) ? r.uff : [r.F, r.C, r.A];
+    ev.push({ d: r.d, tipo: `${RAMI[r.ramo].breve}: ${CAT[r.c].toLowerCase()}`, t: x ? titoloLegge(x) : (r.t || r.l), x, r, sub: `${r.e ? "approvata" : "respinta"} con ${F || 0} sì, ${C || 0} no, ${A || 0} astenuti` });
+  });
+  return ev.sort((a, b) => b.d.localeCompare(a.d));
+}
+function stanceTema(codice, mesi = null) {
+  const da = mesi ? new Date(Date.now() - mesi * 30.4 * DAY).toISOString().slice(0, 10) : "";
+  const voti = TUTTE.filter(r => r.c === "finale" && !r.f.includes("S") && r.temi.includes(codice) && r.d >= da);
+  return { voti, righe: CHIAVI.map(k => {
+    const c = { F: 0, C: 0, A: 0 };
+    voti.forEach(r => { const p = posChiave(r, k.k); if (p && c[p] != null) c[p]++; });
+    const n = c.F + c.C + c.A;
+    return Object.assign({ n }, k, c);
+  }).filter(x => x.n >= 3) };
+}
+function stanceHTML(codice) {
+  const { voti, righe } = stanceTema(codice);
+  if (!righe.length) return `<p class="empty">Ancora troppo pochi voti finali su questo tema per un confronto tra gruppi.</p>`;
+  const bar = (k, n, cls) => n ? `<span class="${cls}" style="flex:${k} 1 0" title="${k} su ${n}"></span>` : "";
+  return `<div class="tbl-scroll"><table><thead><tr><th>Gruppo</th><th class="n">Sì</th><th class="n">No</th><th class="n">Ast.</th><th style="width:34%"></th></tr></thead><tbody>${righe.map(x => `<tr><td><div class="grp-name"><i class="swatch" style="background:${COAL[CK[x.coal] || "alt"].color}"></i>${esc(x.l)}</div></td>
+    <td class="n">${pct(x.F / x.n, 0)}</td><td class="n">${pct(x.C / x.n, 0)}</td><td class="n">${pct(x.A / x.n, 0)}</td>
+    <td><div class="tab-bar slim">${bar(x.F, x.n, "S")}${bar(x.C, x.n, "N")}${bar(x.A, x.n, "A")}</div></td></tr>`).join("")}</tbody></table></div>
+    <p class="note">Posizione dei gruppi nei ${voti.length.toLocaleString("it-IT")} voti finali palesi su leggi di questo tema, Camera e Senato insieme, dall'inizio della legislatura. Sono esclusi i gruppi con meno di 3 voti.</p>`;
+}
+function renderTemi() {
+  const box = $("#temi-box");
+  if (!L.ok) {
+    box.innerHTML = `<p class="loading">${L.errore ? "I temi arriveranno con il prossimo aggiornamento notturno." : "Carico i temi…"}</p>`;
+    if (!L.errore) caricaLeggi().then(() => { if (L.ok || L.errore) renderTemi(); });
+    return;
+  }
+  const seguiti = memo("temi") || [];
+  const anno = new Date(Date.now() - 365 * DAY).toISOString().slice(0, 10);
+  const schede = L.ordineTemi.map(c => {
+    const leggi = L.lista.filter(x => (x.temi || []).includes(c));
+    const nuove = leggi.filter(x => x.dp >= anno).length, approvate = leggi.filter(x => x.st === "legge").length;
+    const voti = TUTTE.filter(r => r.d >= anno && r.temi.includes(c)).length;
+    return `<a class="card tema${tf.tema === c ? " sel" : ""}" href="#temi/${c}">
+      <span class="tema-nome">${seguiti.includes(c) ? '<span class="stella" title="Tema che segui">★</span> ' : ""}${esc(L.temi[c])}</span>
+      <span class="src">${leggi.length.toLocaleString("it-IT")} leggi · ${approvate.toLocaleString("it-IT")} approvate · ${nuove.toLocaleString("it-IT")} nuove in un anno · ${voti.toLocaleString("it-IT")} votazioni in un anno</span>
+    </a>`;
+  }).join("");
+  box.innerHTML = `<div class="temi-grid">${schede}</div><div id="tema-det"></div>`;
+  renderTemaDet();
+}
+function renderTemaDet() {
+  const el = $("#tema-det"), c = tf.tema;
+  if (!el) return;
+  if (!c || !L.temi[c]) { el.innerHTML = `<div class="card"><p class="note">Scegli un tema per vedere le novità, le leggi in corso e come votano i gruppi, e per attivare gli avvisi.</p></div>`; return; }
+  const seguiti = memo("temi") || [], segui = seguiti.includes(c);
+  const visti = memo("temi_visti") || {}, ultima = visti[c];
+  const ev = eventiTema(c);
+  const nuove = ultima ? ev.filter(e => e.d > ultima).length : null;
+  visti[c] = OGGI; memo("temi_visti", visti);
+  const feed = new URL(`data/feed/${c}.xml`, location.href).href;
+  const inCorso = L.lista.filter(x => (x.temi || []).includes(c) && ["commissione", "aula", "approvato"].includes(x.st)).slice(0, 12);
+  el.innerHTML = `<div class="card tema-det">
+    <div class="party-head"><h3>${esc(L.temi[c])}</h3>
+      <div class="frow"><button class="chip" id="tema-segui" aria-pressed="${segui}">${segui ? "★ Segui questo tema" : "☆ Segui questo tema"}</button><button class="chip" data-report-tema="${c}">Scarica il report (PDF)</button></div></div>
+    ${segui && ultima ? `<p class="stato" style="margin:12px 0 0">${nuove ? `<strong>${nuove} novità</strong> dalla tua ultima visita (${fmtDate(ultima)}).` : `Nessuna novità dalla tua ultima visita (${fmtDate(ultima)}).`}</p>` : ""}
+    <details class="avvisi"><summary>Ricevi gli avvisi su questo tema</summary>
+      <p class="note">Ogni notte questo indirizzo si aggiorna con le nuove proposte di legge, i cambi di stato e i voti finali sul tema. Copialo in un lettore di notizie (per esempio Feedly o Inoreader), in Outlook, nell'app RSS di Slack o in Microsoft Teams: le novità arrivano da sole, senza registrarsi.</p>
+      <div class="frow"><input class="feed-url" readonly value="${esc(feed)}" aria-label="Indirizzo del feed"><button class="chip" id="feed-copia">Copia l'indirizzo</button><a class="src" href="${esc(feed)}" target="_blank" rel="noopener">apri il feed</a></div>
+      <p class="src">"Segui" invece resta solo su questo browser: segna il tema con una stella e ti dice quante novità ci sono dall'ultima visita.</p>
+    </details>
+    <h4 class="sez">Ultime novità (4 mesi)</h4>
+    ${ev.length ? `<ul class="eventi">${ev.slice(0, 25).map(e => `<li${ultima && e.d > ultima ? ' class="nuovo"' : ""}><span class="num src">${fmtDate(e.d)}</span> <b>${esc(e.tipo)}</b> · ${e.x ? `<a href="#leggi/${esc(e.x.id)}">${esc(e.t)}</a>` : esc(e.t)}<br><span class="src">${esc(e.sub)}</span></li>`).join("")}</ul>` : `<p class="empty">Nessuna novità negli ultimi quattro mesi.</p>`}
+    <h4 class="sez">Leggi in esame</h4>
+    ${inCorso.length ? `<ul class="eventi">${inCorso.map(x => `<li>${stadioBadge(x.st)} <a href="#leggi/${esc(x.id)}">${esc(titoloLegge(x))}</a><br><span class="src">${fasiLinea(x)} · ${esc(x.fasi[x.fasi.length - 1].s)} dal ${fmtDate(x.ds)}</span></li>`).join("")}</ul>
+      <p class="src"><a href="#leggi" data-leggi-tema="${c}">Tutte le leggi su questo tema</a></p>` : `<p class="empty">Nessuna legge su questo tema è in esame in questo momento.</p>`}
+    <h4 class="sez">Come votano i gruppi su questo tema</h4>
+    ${stanceHTML(c)}
+  </div>`;
+  $("#tema-segui").onclick = () => { const s = memo("temi") || [], i = s.indexOf(c); if (i >= 0) s.splice(i, 1); else s.push(c); memo("temi", s); renderTemi(); };
+  $("#feed-copia").onclick = async () => { try { await navigator.clipboard.writeText(feed); $("#feed-copia").textContent = "Copiato"; } catch (e) { $(".feed-url").select(); } };
+}
+
+/* ---- report da stampare o salvare in PDF ---- */
+function stampa(titolo, sottotitolo, corpo) {
+  const el = $("#report");
+  el.innerHTML = `<header class="rep-head"><span><b>Bussola Parlamentare</b> · report</span><span>${fmtDate(OGGI)}</span></header>
+    <h1>${esc(titolo)}</h1>${sottotitolo ? `<p class="rep-sub">${sottotitolo}</p>` : ""}${corpo}
+    <footer class="rep-foot">Fonti: dati aperti ufficiali della Camera dei deputati (CC BY-SA 4.0) e del Senato della Repubblica (CC BY 3.0), elaborati dalla Bussola Parlamentare${D.meta && D.meta.aggiornato ? `, aggiornati al ${esc(fmtTs(D.meta.aggiornato))}` : ""}. Le percentuali sono calcolate sulle votazioni elettroniche in Aula. ${esc(location.origin + location.pathname)}</footer>`;
+  el.hidden = false;
+  document.body.classList.add("stampa");
+  const fine = () => { document.body.classList.remove("stampa"); el.hidden = true; window.removeEventListener("afterprint", fine); };
+  window.addEventListener("afterprint", fine);
+  setTimeout(() => window.print(), 60);
+}
+const repMetriche = items => `<div class="rep-metr">${items.map(([l, v, s]) => `<div><span>${esc(l)}</span><b>${v}</b>${s ? `<small>${s}</small>` : ""}</div>`).join("")}</div>`;
+async function reportLegge(id) {
+  await caricaLeggi();
+  const x = L.perId[id]; if (!x) return;
+  stampa(titoloLegge(x), `${stadioBadge(x.st)} ${x.fasi.map(f => esc(f.f)).join(" → ")}${x.legge ? ` · Legge n. ${esc(x.legge)}` : ""}`,
+    `${x.tb && x.t !== x.tb ? `<p>${esc(x.t)}</p>` : ""}<p>${chiPresenta(x).replace(/<a [^>]*>|<\/a>/g, "")}.</p>
+    ${x.temi && x.temi.length ? `<p class="src">Temi: ${esc(x.temi.map(t => L.temi[t]).join(", "))}${x.teseo && x.teseo.length ? ` · classificazione del Senato: ${esc(x.teseo.join(", "))}` : ""}</p>` : ""}
+    <h2>Percorso</h2>${percorsoHTML(x)}<h2>Voti in Aula</h2>${votiLeggeHTML(x, 30)}`);
+}
+async function reportTema(c) {
+  await caricaLeggi();
+  const ev = eventiTema(c, 365), leggi = L.lista.filter(x => (x.temi || []).includes(c));
+  const anno = new Date(Date.now() - 365 * DAY).toISOString().slice(0, 10);
+  const approvate = leggi.filter(x => x.st === "legge" && x.ds >= anno);
+  const inCorso = leggi.filter(x => ["commissione", "aula", "approvato"].includes(x.st));
+  stampa(`Tema: ${L.temi[c]}`, "Attività del Parlamento negli ultimi 12 mesi",
+    repMetriche([["Leggi sul tema", leggi.length.toLocaleString("it-IT"), "in tutta la legislatura"], ["Approvate in 12 mesi", approvate.length.toLocaleString("it-IT")], ["In esame adesso", inCorso.length.toLocaleString("it-IT")], ["Nuove proposte in 12 mesi", leggi.filter(x => x.dp >= anno).length.toLocaleString("it-IT")]])
+    + `<h2>Come votano i gruppi</h2>${stanceHTML(c)}
+    <h2>Leggi in esame</h2>${inCorso.length ? `<table><thead><tr><th>Legge</th><th>Fasi</th><th>Stato</th></tr></thead><tbody>${inCorso.slice(0, 25).map(x => `<tr><td>${esc(titoloLegge(x))}</td><td class="num">${x.fasi.map(f => esc(f.f)).join(" → ")}</td><td>${esc(x.fasi[x.fasi.length - 1].s)} (${fmtDate(x.ds)})</td></tr>`).join("")}</tbody></table>` : `<p class="empty">Nessuna.</p>`}
+    <h2>Approvate negli ultimi 12 mesi</h2>${approvate.length ? `<table><tbody>${approvate.map(x => `<tr><td class="num">${fmtDate(x.ds)}</td><td>${esc(titoloLegge(x))}${x.legge ? ` <span class="src">(legge n. ${esc(x.legge)})</span>` : ""}</td></tr>`).join("")}</tbody></table>` : `<p class="empty">Nessuna.</p>`}
+    <h2>Cronologia</h2><table><tbody>${ev.slice(0, 40).map(e => `<tr><td class="num">${fmtDate(e.d)}</td><td><b>${esc(e.tipo)}</b> · ${esc(e.t)}<br><span class="src">${esc(e.sub)}</span></td></tr>`).join("")}</tbody></table>`);
+}
+async function proposteDi(m) {
+  await caricaLeggi();
+  return { prime: L.lista.filter(x => x.pf && x.pf.id === m.id), relatore: L.lista.filter(x => x.fasi.some(f => (f.relid || []).includes(m.id))) };
+}
+async function reportParlamentare(ramo, i) {
+  const R = D[ramo], m = R.membri[i], st = m.st;
+  const { prime, relatore } = await proposteDi(m);
+  const div = (m.div || []).slice().reverse().slice(0, 15).map(([k, c]) => { const r = R.righe[k]; if (!r) return ""; const g = gruppoAlla(m, r.d), gi = R.ordine.indexOf(g); return `<tr><td class="num">${fmtDate(r.d)}</td><td>${esc(r.o ? r.l : r.t)}</td><td>${COD1[c] || c}</td><td>${esc(gl(R, g))}: ${COD1[gi >= 0 ? r.p[gi] : "-"] || ""}</td></tr>`; }).join("");
+  stampa(`${m.nome} ${m.cognome}`, `${RAMI[ramo].nome} · ${m.attivo ? "in carica" : "non in carica"}${m.g ? " · gruppo " + esc(gn(R, m.g)) : ""}`,
+    repMetriche([["Presenze alle votazioni", pct(m.pres), `${st.pres.toLocaleString("it-IT")} su ${st.tot.toLocaleString("it-IT")}`], ["Voti diversi dal gruppo", pct(m.dis), `${st.dis.toLocaleString("it-IT")} su ${st.cmp.toLocaleString("it-IT")}`], ["Proposte di legge", prime.length.toLocaleString("it-IT"), "come primo firmatario"], ["Relatore", relatore.length.toLocaleString("it-IT"), "leggi seguite come relatore"]])
+    + `<h2>Gruppi</h2><table><tbody>${m.adesioni.map(([gid, da, a]) => `<tr><td>${esc(gn(R, gid))}</td><td class="num">dal ${fmtDate(da)}${a ? ` al ${fmtDate(a)}` : ""}</td></tr>`).join("")}</tbody></table>
+    <h2>Proposte di legge come primo firmatario</h2>${prime.length ? `<table><tbody>${prime.slice(0, 30).map(x => `<tr><td class="num">${fmtDate(x.dp)}</td><td>${esc(titoloLegge(x))}<br><span class="src">${x.fasi.map(f => esc(f.f)).join(" → ")} · ${esc(STADI[x.st])}</span></td></tr>`).join("")}</tbody></table>` : `<p class="empty">Nessuna.</p>`}
+    ${relatore.length ? `<h2>Relatore di</h2><table><tbody>${relatore.slice(0, 20).map(x => `<tr><td>${esc(titoloLegge(x))}</td><td>${esc(STADI[x.st])}</td></tr>`).join("")}</tbody></table>` : ""}
+    <h2>Ultimi voti diversi dal suo gruppo</h2>${div ? `<table><thead><tr><th>Data</th><th>Votazione</th><th>Suo voto</th><th>Gruppo</th></tr></thead><tbody>${div}</tbody></table>` : `<p class="empty">Nessuno.</p>`}`);
+}
+async function reportGruppo(ramo, gid) {
+  const R = D[ramo], g = R.G[gid]; if (!g) return;
+  await caricaLeggi();
+  const finali = R.righe.filter(r => r.c === "finale" && !r.f.includes("S")).slice(-15).reverse();
+  const gi = R.ordine.indexOf(gid);
+  const propri = L.lista.filter(x => { const m = x.pf && membroDa(x.pf.id); return m && m.ramo === ramo && gruppoAlla(m, x.dp) === gid; });
+  const perTema = {}; propri.forEach(x => (x.temi || []).forEach(t => { perTema[t] = (perTema[t] || 0) + 1; }));
+  const cv = R.conv, ci = cv.ids.indexOf(gid);
+  const vicini = ci >= 0 ? cv.ids.map((id, j) => ({ id, x: cv.m[ci][j] })).filter(o => o.id !== gid && o.x).sort((a, b) => b.x[0] - a.x[0]).slice(0, 6) : [];
+  stampa(g.nome, `${RAMI[ramo].nome} · ${COAL[CK[g.coal] || "alt"].long} · ${g.membri || 0} ${RAMI[ramo].chi}`,
+    repMetriche([["Compattezza", pct(g.coesione)], ["Partecipazione", pct(g.partecipazione)], ["Vota come la maggioranza", pct(g.allineamento)], ["Proposte di legge dei suoi membri", propri.length.toLocaleString("it-IT"), "come primo firmatario"]])
+    + `${Object.keys(g.anni || {}).length ? `<h2>Anno per anno</h2><table><thead><tr><th>Anno</th><th class="n">Vota come la maggioranza</th><th class="n">Compattezza</th><th class="n">Partecipazione</th></tr></thead><tbody>${Object.entries(g.anni).map(([a, y]) => `<tr><td class="num">${a}</td><td class="n">${pct(y.allineamento, 0)}</td><td class="n">${pct(y.coesione, 0)}</td><td class="n">${pct(y.partecipazione, 0)}</td></tr>`).join("")}</tbody></table>` : ""}
+    ${vicini.length ? `<h2>Con chi vota più spesso</h2><table><tbody>${vicini.map(o => `<tr><td>${esc(gn(R, o.id))}</td><td class="n">${pct(o.x[0], 0)} delle votazioni palesi</td></tr>`).join("")}</tbody></table>` : ""}
+    ${Object.keys(perTema).length ? `<h2>Su quali temi presentano proposte</h2><p>${Object.entries(perTema).sort((a, b) => b[1] - a[1]).map(([t, n]) => `${esc(L.temi[t] || t)} (${n})`).join(" · ")}</p>` : ""}
+    <h2>Ultimi voti finali</h2><table><thead><tr><th>Data</th><th>Legge</th><th>Esito</th><th>Posizione del gruppo</th></tr></thead><tbody>${finali.map(r => `<tr><td class="num">${fmtDate(r.d)}</td><td>${esc(leggeDelVoto(r) ? titoloLegge(leggeDelVoto(r)) : (r.t || r.l))}</td><td>${r.e ? "Approvata" : "Respinta"}</td><td>${(POS[r.p[gi]] || ["", "—"])[1]}</td></tr>`).join("")}</tbody></table>`);
+}
+document.addEventListener("click", e => {
+  const t = e.target.closest("[data-ldet],[data-vedi-voti],[data-report-legge],[data-report-tema],[data-report-parl],[data-report-gruppo],[data-membro],[data-leggi-tema],[data-leggi-cerca]");
+  if (!t) return;
+  if (t.dataset.ldet !== undefined) apriLegge(t.closest("article.lrow"));
+  else if (t.dataset.vediVoti) { vf.legge = t.dataset.vediVoti; vf.n = 50; vf.cat = "tutte"; location.hash = "#voti"; renderVoteFilters(); renderVotesList(); }
+  else if (t.dataset.reportLegge) reportLegge(t.dataset.reportLegge);
+  else if (t.dataset.reportTema) reportTema(t.dataset.reportTema);
+  else if (t.dataset.reportParl) { const [r, i] = t.dataset.reportParl.split(":"); reportParlamentare(r, +i); }
+  else if (t.dataset.reportGruppo) { const [r, g] = t.dataset.reportGruppo.split(":"); reportGruppo(r, g); }
+  else if (t.dataset.membro) { const [r, i] = t.dataset.membro.split(":"); pf.sel = [r, +i]; pf.attivi = false; }
+  else if (t.dataset.leggiTema) { lf.tema = t.dataset.leggiTema; lf.apri = null; lf.n = 30; }
+  else if (t.dataset.leggiCerca) { lf.q = t.dataset.leggiCerca; lf.parole = norm(lf.q).split(/\s+/).filter(Boolean); lf.apri = null; lf.n = 30; }
+});
+
 /* ===================== ROUTING E AVVIO ===================== */
-const VIEWS = ["parlamento", "forze", "voti", "parlamentari", "cambi", "governi", "metodo"];
+const VIEWS = ["parlamento", "forze", "voti", "leggi", "temi", "parlamentari", "cambi", "governi", "metodo"];
 function route() {
-  const h = (location.hash || "#parlamento").slice(1);
+  const [h, param] = decodeURIComponent((location.hash || "#parlamento").slice(1)).split("/");
   const v = VIEWS.includes(h) ? h : "parlamento";
   VIEWS.forEach(x => $("#v-" + x).classList.toggle("active", x === v));
   document.querySelectorAll("nav.tabs a").forEach(a => { if (a.getAttribute("href") === "#" + v) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
   hideTip();
   if (v === "governi") renderChart();
   if (v === "parlamentari" && D.ok) { renderParlFilters(); renderParlTable(); renderParlDet(); }
+  if (v === "leggi") { lf.apri = param || null; if (D.ok) renderLeggi(); }
+  if (v === "temi") { tf.tema = param || null; if (D.ok) renderTemi(); }
+  if (v === "voti" && D.ok) { renderVoteFilters(); renderVotesList(); }
 }
 window.addEventListener("hashchange", () => { route(); window.scrollTo(0, 0); });
 let rT; window.addEventListener("resize", () => { clearTimeout(rT); rT = setTimeout(() => { if ($("#v-governi").classList.contains("active")) renderChart(); }, 120); });
@@ -1900,6 +2323,7 @@ caricaDati().then(() => {
   renderCambi();
   renderMetodo();
   route();
+  caricaLeggi().then(() => { renderVoteFilters(); renderVotesList(); });
 });
 
 </script>

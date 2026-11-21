@@ -32,9 +32,13 @@ STATI = {
     "respinto": "respinto",
     "D-L decaduto": "decreto-legge decaduto",
     "restit. al Governo": "restituito al Governo",
+    "appr. def. non pubbl": "approvato definitivamente, in attesa di pubblicazione",
+    "cancellato dall'OdG": "cancellato dall'ordine del giorno",
+    "concl. anomala stral": "chiuso per stralcio",
+    "rinviato ass.->comm.": "rinviato dall'Aula alla commissione",
 }
 STADI = {
-    "legge": "È legge",
+    "legge": "Approvata definitivamente",
     "approvato": "Approvato da un ramo",
     "aula": "In Aula",
     "commissione": "In commissione",
@@ -48,17 +52,17 @@ INIZIATIVE = {"Governativa": "Governo", "Parlamentare": "Parlamentare", "Regiona
 
 def stadio(stato):
     s = (stato or "").lower()
-    if "legge" in s:
+    if "legge" in s or "def" in s:  # "appr. definit. Legge", "appr. def. non pubbl"
         return "legge"
     if s.startswith("appr"):
         return "approvato"
     if "assemblea" in s or "relazione" in s or "concluso" in s:
         return "aula"
-    if "esame in comm" in s:
+    if "esame in comm" in s or "rinviato" in s:
         return "commissione"
     if "assegn" in s:
         return "presentato"
-    if any(x in s for x in ("assorbito", "ritirato", "respinto", "decaduto", "restit", "stralcio")):
+    if any(x in s for x in ("assorbito", "ritirato", "respinto", "decaduto", "restit", "stral", "cancellato")):
         return "chiuso"
     return "altro"
 
@@ -82,6 +86,9 @@ def voce_teseo(s):
 def commissione(etichetta):
     """'8ª (Ambiente, territorio e lavori pubblici)' -> '8ª Commissione (Ambiente, territorio e lavori pubblici)'."""
     s = pulisci(etichetta)
+    if s.lower().startswith("commissioni riunite"):
+        s = re.sub(r"\s+\d+\s*ª\s*$", "", s)                  # numero ripetuto in fondo
+        return re.sub(r"\)\s+(\d+\s*ª)", r") e \1", s)     # "9ª (...) e 10ª (...)"
     m = re.match(r"^(\d+)\s*[ªa°]?\s*(\(.*\))?\s*$", s)
     if m:
         return f"{m.group(1)}ª Commissione{(' ' + m.group(2)) if m.group(2) else ''}"
@@ -220,6 +227,8 @@ def costruisci(fasi, temi):
         prima, ultima = ff[0], ff[-1]
         stati = [f["stato"] for f in ff]
         st = "legge" if any(stadio(s) == "legge" for s in stati) else stadio(ultima["stato"])
+        if st in ("presentato", "commissione", "aula") and any(stadio(s) == "approvato" for s in stati[:-1]):
+            st = "approvato"  # già approvato da un ramo, ora all'esame dell'altro
         teseo = []
         for f in ff:
             teseo += [v for v in f["teseo"] if v not in teseo]
