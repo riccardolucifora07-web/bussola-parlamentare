@@ -105,6 +105,7 @@ class Endpoint:
         attesa = 3
         ultimo = None
         for n in range(1, self.tentativi + 1):
+            blocco = False
             try:
                 time.sleep(self.pausa)
                 self.richieste += 1
@@ -121,14 +122,20 @@ class Endpoint:
                 # 400 = query sbagliata: inutile ritentare
                 if e.code == 400 or (e.code < 500 and e.code not in (403, 408, 429)):
                     raise ErroreSparql(f"{self.nome}: HTTP {e.code} {corpo}") from e
-                riga = " ".join(corpo.split())[:240]
+                blocco = e.code in (403, 429)
+                if blocco:  # il sito limita le richieste: il blocco dura qualche minuto
+                    attesa = max(attesa, 30)
+                    riga = "richiesta rifiutata dal sito"
+                else:
+                    riga = " ".join(corpo.split())[:240]
                 self.log(f"  [{self.nome}] HTTP {e.code}{': ' + riga if riga else ''}; nuovo tentativo {n}/{self.tentativi} tra {attesa}s")
             except (urllib.error.URLError, socket.timeout, TimeoutError, ConnectionError,
                     json.JSONDecodeError, ErroreSparql) as e:
                 ultimo = e
                 self.log(f"  [{self.nome}] {type(e).__name__}: {e}; nuovo tentativo {n}/{self.tentativi} tra {attesa}s")
-            time.sleep(attesa)
-            attesa = min(attesa * 2, 60)
+            if n < self.tentativi:
+                time.sleep(attesa)
+                attesa = min(attesa * 2, 120 if blocco else 60)
         raise ErroreSparql(f"{self.nome}: troppi errori ({ultimo})")
 
     def query_tutto(self, q, ordina):

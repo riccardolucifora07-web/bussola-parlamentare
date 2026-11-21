@@ -246,6 +246,8 @@ def aggiorna_ramo(ramo, dati_dir, scadenza, rifai, endpoint_url, solo_calcoli, r
     stato = leggi_json(os.path.join(cart, "stato.json"), {"fatti": {}})
     if stato.get("versione") != VERSIONE_DATI:  # formato cambiato: si riscarica tutto
         stato = {"versione": VERSIONE_DATI, "fatti": {}}
+    if not endpoint_url:  # solo verso il sito vero (le prove usano un endpoint finto)
+        pausa = max(pausa, getattr(mod, "PAUSA_MINIMA", 0))
     ep = Endpoint(endpoint_url or mod.ENDPOINT, ramo, pausa=pausa, log=lambda *a: log(*a),
                   max_url=getattr(mod, "MAX_URL", None))
     rimaste = 0
@@ -286,7 +288,13 @@ def aggiorna_ramo(ramo, dati_dir, scadenza, rifai, endpoint_url, solo_calcoli, r
         da_fare = [u for u in unita if u["k"] not in fatti or u["k"] in recenti]
         log(f"[{ramo}] {len(unita)} {'giorni' if ramo == 'camera' else 'sedute'} con votazioni, da scaricare: {len(da_fare)}")
 
+        rifiuti = 0  # sedute di fila respinte con "403": il sito sta limitando le richieste
         for n, u in enumerate(da_fare, 1):
+            if rifiuti >= 2:
+                rimaste = len(da_fare) - n + 1
+                avviso(f"{ramo}: il sito sta rifiutando le richieste (troppe in poco tempo); "
+                       f"restano {rimaste} {'giorni' if ramo == 'camera' else 'sedute'}, riprendo al prossimo aggiornamento")
+                break
             if time.time() > scadenza:
                 rimaste = len(da_fare) - n + 1
                 avviso(f"{ramo}: tempo esaurito, restano {rimaste} {'giorni' if ramo == 'camera' else 'sedute'}; riprendo al prossimo aggiornamento")
@@ -294,8 +302,10 @@ def aggiorna_ramo(ramo, dati_dir, scadenza, rifai, endpoint_url, solo_calcoli, r
             try:
                 vot = camera.votazioni_giorno(ep, u["d"]) if ramo == "camera" else senato.votazioni_seduta(ep, u["seduta"])
             except Exception as e:  # noqa: BLE001
+                rifiuti = rifiuti + 1 if "403" in str(e) else 0
                 avviso(f"{ramo}: impossibile scaricare {u['k']} ({e})")
                 continue
+            rifiuti = 0
             for v in vot:
                 v["voti"] = {uri: c for uri, c in v["voti"].items() if not segnaposto(uri)}
             ignoti = {uri for v in vot for uri in v["voti"] if uri not in indice_uri}

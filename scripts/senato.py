@@ -10,6 +10,7 @@ from comune import INIZIO_LEG, data_iso, nome_gruppo, nome_locale, nome_proprio,
 ENDPOINT = "https://dati.senato.it/sparql"
 LEG = 19
 MAX_URL = 1800  # oltre circa 2.000 caratteri l'endpoint risponde 403
+PAUSA_MINIMA = 1.5  # dopo circa 400 richieste ravvicinate il sito del Senato inizia a rispondere 403
 
 CODICI = {
     "favorevole": "F", "contrario": "C", "astenuto": "A", "votante": "V",
