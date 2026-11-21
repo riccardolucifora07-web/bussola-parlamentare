@@ -254,6 +254,8 @@ def risposta(nome, q):
             for lista, sens in v["liste"].items():
                 props += [(OSR + lista, U(x)) for x in sens]
             righe += [{"v": U(s), "p": U(p), "o": o} for p, o in props]
+    elif nome.startswith("leggi_"):
+        righe = risposta_leggi(nome, q, D_)
     elif nome == "senato_ddl":
         sed = seduta.rsplit("/", 1)[-1]
         for v in [v for v in D_["svot"] if v["sed"] == sed and not v["legale"]]:
@@ -269,6 +271,75 @@ def risposta(nome, q):
     else:
         righe = righe[:MAX_RIGHE]
     return {"head": {"vars": vars_}, "results": {"bindings": righe}}
+
+
+SKOS = "http://www.w3.org/2004/02/skos/core#"
+S_ = lambda v: {"type": "typed-literal", "datatype": XSD + "string", "value": str(v)}  # noqa: E731
+# disegni di legge finti: una legge approvata in due letture (C.1234 -> S.1026), una proposta
+# appena presentata da un deputato e un decreto-legge in commissione al Senato
+DDL = [
+    {"uri": "http://dati.senato.it/ddl/5001", "f": "C.1234", "r": "C", "id": 900, "prog": 1,
+     "t": "Legge annuale per il mercato e la concorrenza delle piccole e medie imprese", "tb": "",
+     "s": "approvato", "ds": "2023-06-15", "dp": "2023-01-10", "nat": "ordinario", "descr": "Pres. Consiglio Meloni Giorgia (Meloni-I)",
+     "legge": "", "teseo": ["PICCOLE E MEDIE IMPRESE", "CONCORRENZA"],
+     "comm": ("10&ordf; (Attivit&agrave; produttive, commercio e turismo)", "referente", "2023-01-20"),
+     "rel": ("On. Mario Rossi 3", None), "pf": ("Pres. Consiglio  Giorgia Meloni (Gov. Meloni-I)", "Governativa", None), "nf": 2},
+    {"uri": "http://dati.senato.it/ddl/5002", "f": "S.1026", "r": "S", "id": 900, "prog": 2,
+     "t": "Legge annuale per il mercato e la concorrenza delle piccole e medie imprese", "tb": "Legge annuale sulle PMI",
+     "s": "appr. definit. Legge", "ds": "2026-11-19", "dp": "2023-06-16", "nat": "ordinario", "descr": "Pres. Consiglio Meloni Giorgia (Meloni-I)",
+     "legge": "55", "teseo": ["PICCOLE E MEDIE IMPRESE"],
+     "comm": ("9&ordf; (Industria, commercio, turismo, agricoltura e produzione agroalimentare)", "referente", "2023-06-20"),
+     "rel": ("Sen. Anna Bianchi 2", "http://dati.senato.it/senatore/30002"), "pf": ("Pres. Consiglio  Giorgia Meloni (Gov. Meloni-I)", "Governativa", None), "nf": 2},
+    {"uri": "http://dati.senato.it/ddl/5003", "f": "C.2000", "r": "C", "id": 901, "prog": 1,
+     "t": "Disposizioni per lo sviluppo delle energie rinnovabili", "tb": "",
+     "s": "assegnato (no esame)", "ds": "2026-11-12", "dp": "2026-11-10", "nat": "ordinario", "descr": "Dep. Rossi 1 Mario ed altri",
+     "legge": "", "teseo": ["FONTI RINNOVABILI DI ENERGIA"],
+     "comm": ("8&ordf; (Ambiente, territorio e lavori pubblici)", "referente", "2026-11-12"),
+     "rel": None, "pf": ("On. Mario Rossi 1", "Parlamentare", "http://dati.camera.it/ocd/deputato.rdf/d300001_19"), "nf": 4},
+    {"uri": "http://dati.senato.it/ddl/5004", "f": "S.1500", "r": "S", "id": 902, "prog": 1,
+     "t": "Conversione in legge del decreto-legge 1 novembre 2026, n. 170, recante misure urgenti in materia sanitaria", "tb": "d-l 170/2026 - Sanità",
+     "s": "esame in comm.", "ds": "2026-11-05", "dp": "2026-11-02", "nat": "di conversione di decreto-legge", "descr": "Pres. Consiglio Meloni Giorgia (Meloni-I)",
+     "legge": "", "teseo": ["TUTELA DELLA SALUTE"],
+     "comm": ("10&ordf; (Affari sociali, sanit&agrave;, lavoro pubblico e privato, previdenza sociale)", "referente", "2026-11-03"),
+     "rel": ("Sen. Anna Bianchi 70", "http://dati.senato.it/senatore/30070"), "pf": ("Pres. Consiglio  Giorgia Meloni (Gov. Meloni-I)", "Governativa", None), "nf": 1},
+]
+
+
+def risposta_leggi(nome, q, D_):
+    m = re.search(r"ramo=(\w)", q)
+    ramo = m.group(1) if m else None
+    if 'str(?ramo) = "' not in q and nome != "leggi_voti":
+        raise KeyError("manca il filtro sul ramo")
+    righe = []
+    for d in [d for d in DDL if d["r"] == ramo]:
+        u = U(d["uri"])
+        if nome == "leggi_base":
+            x = {"d": u, "f": S_(d["f"]), "id": I(d["id"]), "titolo": S_(d["t"]), "stato": S_(d["s"]), "ds": D(d["ds"]),
+                 "dp": S_(d["dp"]), "nat": S_(d["nat"]), "descr": S_(d["descr"]), "prog": I(d["prog"])}
+            if d["tb"]:
+                x["breve"] = S_(d["tb"])
+            if d["legge"]:
+                x["legge"] = S_(d["legge"])
+            righe += [x, dict(x)]  # come il Senato vero: ogni risultato compare due volte se manca DISTINCT
+        elif nome == "leggi_teseo":
+            righe += [{"d": u, "lab": L(t)} for t in d["teseo"]]
+        elif nome == "leggi_commissioni":
+            righe.append({"d": u, "lab": L(d["comm"][0]), "sede": S_(d["comm"][1]), "data": D(d["comm"][2])})
+        elif nome == "leggi_relatori" and d["rel"]:
+            x = {"d": u, "nome": L(d["rel"][0])}
+            if d["rel"][1]:
+                x["sen"] = U(d["rel"][1])
+            righe.append(x)
+        elif nome == "leggi_firmatari":
+            x = {"d": u, "pres": L(d["pf"][0]), "tipo": S_(d["pf"][1])}
+            if d["pf"][2]:
+                x["dep"] = U(d["pf"][2])
+            righe.append(x)
+        elif nome == "leggi_conta_firme":
+            righe.append({"d": u, "n": I(d["nf"])})
+    if nome == "leggi_voti":
+        righe = [{"v": U(v["uri"]), "f": S_("S.1026")} for v in D_["svot"] if not v["legale"]]
+    return righe
 
 
 class Gestore(BaseHTTPRequestHandler):

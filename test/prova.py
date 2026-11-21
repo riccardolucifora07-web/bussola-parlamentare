@@ -99,6 +99,35 @@ def main():
         assert st["tot"] == 24 and st["pres"] + st["mis"] + st["ass"] == st["tot"], st
 
         # --- Senato
+        # --- leggi, temi e avvisi
+        L_ = leggi(os.path.join(dati, "leggi.json"))
+        per_id = {x["id"]: x for x in L_["leggi"]}
+        assert len(L_["leggi"]) == 3, [x["id"] for x in L_["leggi"]]
+        pmi = per_id["900"]
+        assert [f["f"] for f in pmi["fasi"]] == ["C.1234", "S.1026"], pmi["fasi"]
+        assert pmi["st"] == "legge" and pmi["legge"] == "55" and pmi["tb"] == "Legge annuale sulle PMI", pmi
+        assert "imprese" in pmi["temi"], pmi["temi"]
+        assert pmi["fasi"][0]["comm"][0]["n"].startswith("10ª Commissione (Attività produttive"), pmi["fasi"][0]["comm"]
+        assert pmi["fasi"][1]["rel"] == ["Anna Bianchi 2"], pmi["fasi"][1]
+        assert pmi["ini"] == "Governo" and pmi["teseo"][0] == "Piccole e medie imprese", pmi
+        rinn = per_id["901"]
+        assert rinn["st"] == "presentato" and rinn["temi"][0] == "energia" and rinn["ini"] == "Parlamentare", rinn
+        assert rinn["pf"]["id"].endswith("d300001_19") and rinn["nf"] == 4, rinn
+        assert per_id["902"]["st"] == "commissione" and "sanita" in per_id["902"]["temi"]
+        IC = leggi(os.path.join(dati, "camera", "indice.json"))
+        IS = leggi(os.path.join(dati, "senato", "indice.json"))
+        assert IC["campi"][-1] == "temi" and IS["campi"][-1] == "temi"
+        assert any(r[14] == "1234" and "imprese" in r[15] for r in IC["righe"]), "voto Camera collegato alla legge e al tema"
+        assert any(r[14] == "1026" and "imprese" in r[15] for r in IS["righe"]), "voto Senato collegato al ddl e al tema"
+        with open(os.path.join(dati, "feed", "energia.xml"), encoding="utf-8") as f:
+            testo = f.read()
+        assert "Disposizioni per lo sviluppo delle energie rinnovabili" in testo and "<rss" in testo, testo[:500]
+        with open(os.path.join(dati, "feed", "imprese.xml"), encoding="utf-8") as f:
+            testo = f.read()
+        assert "Senato, voto finale" in testo and "approvato definitivamente" in testo, testo[:1500]
+        from xml.dom import minidom
+        assert minidom.parseString(testo.encode()).getElementsByTagName("item"), "il feed deve essere XML valido"
+
         C_ = leggi(os.path.join(dati, "camera", "membri.json"))
         assert not any("d0_" in m["id"] for m in C_["membri"]), "il deputato 0 non è una persona"
         S = leggi(os.path.join(dati, "senato", "membri.json"))

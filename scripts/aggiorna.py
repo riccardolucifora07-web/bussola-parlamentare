@@ -23,7 +23,10 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import atti  # noqa: E402
 import camera  # noqa: E402
+import feed  # noqa: E402
+import leggi as ddl  # noqa: E402
 import senato  # noqa: E402
+from temi import Temi  # noqa: E402
 from calcoli import Calcolo, in_carica, unisci_intervalli  # noqa: E402
 from comune import CATEGORIE, INIZIO_LEG, categoria, leggi_json, nome_locale, pulisci_testo, scrivi_json  # noqa: E402
 from sparql import Endpoint  # noqa: E402
@@ -219,7 +222,10 @@ def collega_atti(ramo, cart, votazioni, ep=None):
     """Numero e titolo della legge in discussione per ogni votazione della Camera.
     Con l'endpoint (aggiornamento normale) chiede i titoli che mancano e li conserva in atti.json."""
     if ramo != "camera":
-        return {}
+        voti_ddl = leggi_json(os.path.join(cart, "atti_voti.json"), {}) or {}
+        out = {v["id"]: (voti_ddl[v["id"]], "") for v in votazioni if v["id"] in voti_ddl}
+        log(f"[senato] disegno di legge individuato per {len(out)} votazioni su {len(votazioni)}")
+        return out
     percorso = os.path.join(cart, "atti.json")
     cache = leggi_json(percorso, {}) or {}
     collegamenti = atti.collega(votazioni, cache)
@@ -239,7 +245,19 @@ def collega_atti(ramo, cart, votazioni, ep=None):
     return collegamenti
 
 
-def aggiorna_ramo(ramo, dati_dir, scadenza, rifai, endpoint_url, solo_calcoli, regole, pausa, governo=None):
+def temi_voto(ramo, v, collegamento, temi, temi_fase):
+    """Temi di una votazione: quelli della legge in discussione, altrimenti dal testo della votazione."""
+    if collegamento and collegamento[0]:
+        chiave = ("C." if ramo == "camera" else "S.") + str(collegamento[0])
+        if chiave in temi_fase:
+            return temi_fase[chiave]
+        if collegamento[1]:
+            return temi.classifica(collegamento[1])
+    return temi.classifica(v.get("t"), v.get("o")) if temi else []
+
+
+def aggiorna_ramo(ramo, dati_dir, scadenza, rifai, endpoint_url, solo_calcoli, regole, pausa, governo=None,
+                  temi=None, temi_fase=None):
     mod = camera if ramo == "camera" else senato
     cart = os.path.join(dati_dir, ramo)
     os.makedirs(os.path.join(cart, "votazioni"), exist_ok=True)
@@ -346,10 +364,11 @@ def aggiorna_ramo(ramo, dati_dir, scadenza, rifai, endpoint_url, solo_calcoli, r
         scrivi_json(p, {"votazioni": vs})
     righe = [[v["id"], v["d"], v.get("n"), atti.titolo_indice(v, collegamenti.get(v["id"]))[:200], v.get("o", "")[:200], v["c"], v["f"],
               v.get("e"), v["v"].count("F"), v["v"].count("C"), v["v"].count("A"), v.get("p", ""),
-              v.get("pm", "-"), v.get("tot", [None] * 6)[2:5], (collegamenti.get(v["id"]) or (None,))[0]] for v in tutte]
+              v.get("pm", "-"), v.get("tot", [None] * 6)[2:5], (collegamenti.get(v["id"]) or (None,))[0],
+              ",".join(temi_voto(ramo, v, collegamenti.get(v["id"]), temi, temi_fase or {})) if temi else ""] for v in tutte]
     scrivi_json(os.path.join(cart, "indice.json"), {
         "campi": ["id", "data", "numero", "titolo", "oggetto", "categoria", "flag", "esito",
-                  "F", "C", "A", "posizioni", "maggioranza", "ufficiali_FCA", "atto"],
+                  "F", "C", "A", "posizioni", "maggioranza", "ufficiali_FCA", "atto", "temi"],
         "gruppi": ris["ordine"], "righe": righe,
     })
     salva_anagrafe(cart, membri, gruppi)
@@ -394,6 +413,36 @@ def main():
         except Exception as e:  # noqa: BLE001
             log(f"governo in carica non disponibile ({e}): uso l'ultimo noto")
     governo = meta.get("governo")
+
+    # ---- percorso delle leggi e temi (dati del Senato, che coprono anche le fasi alla Camera)
+    temi = Temi()
+    leggi_p = os.path.join(a.dati, "leggi.json")
+    elenco = (leggi_json(leggi_p, {}) or {}).get("leggi", [])
+    if not a.solo_calcoli:
+        url_s = os.environ.get("BUSSOLA_SENATO_ENDPOINT")
+        ep_s = Endpoint(url_s or senato.ENDPOINT, "senato", pausa=a.pausa if url_s else max(a.pausa, senato.PAUSA_MINIMA),
+                        tentativi=3, log=lambda *x: log(*x), max_url=senato.MAX_URL)
+        try:
+            fasi = ddl.scarica(ep_s, dt.date.today().year)
+            nuovo = ddl.costruisci(fasi, temi)
+            if not nuovo:
+                raise RuntimeError("nessun disegno di legge trovato")
+            elenco = nuovo
+            voti_ddl = ddl.voti_senato(ep_s)
+            scrivi_json(os.path.join(a.dati, "senato", "atti_voti.json"), voti_ddl)
+            meta["leggi"] = {"totale": len(elenco), "fasi": len(fasi), "voti_senato_collegati": len(voti_ddl),
+                             "aggiornato": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
+                             "richieste": ep_s.richieste}
+            log(f"leggi: {len(elenco)} disegni di legge ({len(fasi)} fasi), {len(voti_ddl)} votazioni del Senato collegate")
+        except Exception as e:  # noqa: BLE001
+            log(f"leggi: aggiornamento non riuscito ({e}): uso l'ultimo archivio")
+            meta.setdefault("leggi", {})["errore"] = f"{dt.date.today().isoformat()}: {e}"
+    elenco = ddl.riclassifica(elenco, temi)
+    if elenco:
+        scrivi_json(leggi_p, {"aggiornato": (meta.get("leggi") or {}).get("aggiornato"), "temi": temi.elenco,
+                              "stadi": ddl.STADI, "leggi": elenco})
+    temi_fase = ddl.temi_per_fase(elenco)
+
     for i, ramo in enumerate(rami):
         # il tempo si divide tra i rami rimasti, lasciando 8 minuti per i calcoli finali
         restante = a.max_minuti * 60 - (time.time() - inizio) - 8 * 60 * (len(rami) - i)
@@ -401,7 +450,8 @@ def main():
         url = os.environ.get(f"BUSSOLA_{ramo.upper()}_ENDPOINT")
         AVVISI.clear()
         try:
-            ris = aggiorna_ramo(ramo, a.dati, scadenza, a.rifai, url, a.solo_calcoli, regole, a.pausa, governo)
+            ris = aggiorna_ramo(ramo, a.dati, scadenza, a.rifai, url, a.solo_calcoli, regole, a.pausa, governo,
+                                temi, temi_fase)
             ris["aggiornato"] = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
             ris["avvisi"] = list(AVVISI)
             meta["rami"][ramo] = ris
@@ -410,8 +460,14 @@ def main():
             falliti += 1
             print(f"::error::{ramo}: aggiornamento non riuscito: {e}", flush=True)
             meta["rami"].setdefault(ramo, {})["errore"] = f"{dt.date.today().isoformat()}: {e}"
+    try:
+        n = feed.scrivi(a.dati, elenco, temi.elenco)
+        log(f"avvisi: {n} feed RSS scritti in {os.path.join(a.dati, 'feed')}")
+    except Exception as e:  # noqa: BLE001
+        log(f"avvisi: feed non scritti ({e})")
     meta["aggiornato"] = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
     meta["categorie"] = CATEGORIE
+    meta["temi"] = temi.elenco
     meta["fonti"] = {
         "camera": {"nome": "Camera dei deputati, dati.camera.it", "url": "https://dati.camera.it/", "licenza": "CC BY-SA 4.0"},
         "senato": {"nome": "Senato della Repubblica, dati.senato.it", "url": "https://dati.senato.it/", "licenza": "CC BY 3.0"},
