@@ -428,8 +428,12 @@ def main():
             if not nuovo:
                 raise RuntimeError("nessun disegno di legge trovato")
             elenco = nuovo
-            voti_ddl = ddl.voti_senato(ep_s)
-            scrivi_json(os.path.join(a.dati, "senato", "atti_voti.json"), voti_ddl)
+            try:
+                voti_ddl = ddl.voti_senato(ep_s, dt.date.today().year)
+                scrivi_json(os.path.join(a.dati, "senato", "atti_voti.json"), voti_ddl)
+            except Exception as e:  # noqa: BLE001
+                log(f"leggi: collegamento tra votazioni del Senato e ddl non aggiornato ({e})")
+                voti_ddl = leggi_json(os.path.join(a.dati, "senato", "atti_voti.json"), {}) or {}
             meta["leggi"] = {"totale": len(elenco), "fasi": len(fasi), "voti_senato_collegati": len(voti_ddl),
                              "aggiornato": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
                              "richieste": ep_s.richieste}

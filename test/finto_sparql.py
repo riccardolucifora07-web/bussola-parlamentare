@@ -308,7 +308,7 @@ DDL = [
 def risposta_leggi(nome, q, D_):
     m = re.search(r"ramo=(\w)", q)
     ramo = m.group(1) if m else None
-    if 'str(?ramo) = "' not in q and nome != "leggi_voti":
+    if 'str(?ramo) = "' not in q:
         raise KeyError("manca il filtro sul ramo")
     righe = []
     for d in [d for d in DDL if d["r"] == ramo]:
@@ -338,7 +338,9 @@ def risposta_leggi(nome, q, D_):
         elif nome == "leggi_conta_firme":
             righe.append({"d": u, "n": I(d["nf"])})
     if nome == "leggi_voti":
-        righe = [{"v": U(v["uri"]), "f": S_("S.1026")} for v in D_["svot"] if not v["legale"]]
+        if "dataSeduta" not in q:
+            raise KeyError("manca la data della seduta")
+        righe = [{"v": U(v["uri"]), "f": S_("S.1026")} for v in D_["svot"] if not v["legale"]] if ramo == "S" else []
     return righe
 
 

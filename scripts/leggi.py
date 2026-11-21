@@ -193,14 +193,14 @@ SELECT ?d (COUNT(DISTINCT ?i) AS ?n) WHERE {{
     return fasi
 
 
-def voti_senato(ep):
+def voti_senato(ep, oggi_anno):
     """{id votazione del Senato (es. '19-167-1'): numero del ddl (es. '1056')} per le votazioni su un ddl."""
-    righe = ep.query(f"""# q:leggi_voti
+    modello = f"""# q:leggi_voti ramo=S
 SELECT DISTINCT ?v ?f WHERE {{
-  ?v a osr:Votazione ; osr:legislatura {LEG} ; osr:oggetto ?og . ?og osr:relativoA ?ddl . ?ddl osr:fase ?f .
-}}""")
-    if len(righe) >= LIMITE:
-        raise RuntimeError(f"collegamento votazioni-ddl: troppe righe ({len(righe)})")
+  ?v a osr:Votazione ; osr:legislatura {LEG} ; osr:seduta ?s ; osr:oggetto ?og . ?og osr:relativoA ?ddl .
+  ?s osr:dataSeduta ?ds . ?ddl osr:fase ?f ; osr:ramo ?ramo . FILTER (str(?ramo) = "S") %FILTRO%
+}}"""
+    righe = interroga(ep, modello, "collegamento votazioni-ddl", list(range(2022, oggi_anno + 1)), var="?ds")
     out = {}
     for x in righe:
         f = str(x.get("f") or "")
@@ -232,7 +232,8 @@ def costruisci(fasi, temi):
             "pf": {"n": pf.get("n", ""), "id": pf.get("id", "")} if pf else None, "nf": prima["nf"],
             "dp": prima["dp"], "st": st, "s": STATI.get(ultima["stato"], ultima["stato"]), "ds": ultima["ds"] or ultima["dp"],
             "legge": legge, "teseo": teseo[:8],
-            "fasi": [{"f": f["f"], "s": STATI.get(f["stato"], f["stato"]), "st": stadio(f["stato"]), "ds": f["ds"], "dp": f["dp"],
+            "fasi": [{"f": f["f"], "u": nome_locale(f["uri"]), "s": STATI.get(f["stato"], f["stato"]), "st": stadio(f["stato"]),
+                      "ds": f["ds"], "dp": f["dp"],
                       "comm": f["comm"][:3], "rel": [r["n"] for r in f["rel"]][:4],
                       "relid": [r["id"] for r in f["rel"] if r["id"]][:4]} for f in ff],
         }
