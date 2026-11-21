@@ -294,6 +294,11 @@ button.more { justify-self: center; }
 .vrow { display: grid; gap: 8px; padding: 14px 18px; }
 .vrow h3.vt { font-family: var(--font-body); font-size: 15.5px; font-weight: 600; line-height: 1.35; letter-spacing: 0; }
 .vrow .sub { color: var(--ink-2); font-size: 13.5px; }
+.vrow .sub b { font-weight: 600; color: var(--ink); }
+.spiega { border-left: 3px solid var(--accent); background: var(--band-1); border-radius: 0 var(--radius) var(--radius) 0; padding: 10px 14px; display: grid; gap: 6px; font-size: 14px; max-width: 90ch; }
+.spiega h4 { font-family: var(--font-body); font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--accent); margin: 0; }
+.spiega p { margin: 0; color: var(--ink-2); }
+.spiega p b { color: var(--ink); font-weight: 600; }
 .tab-bar.slim { height: 10px; border-radius: 5px; max-width: 560px; }
 .tab-bar.slim span { font-size: 0; }
 .tab-legend.sm { font-size: 12.5px; gap: 10px; }
@@ -1108,6 +1113,138 @@ const RAMI = {
 const CK = { maggioranza: "mag", opposizione: "opp", altro: "alt" };
 const OGGI = (() => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}`; })();
 const CAT = { finale: "Voto finale", fiducia: "Fiducia", emendamento: "Emendamento", articolo: "Articolo", odg: "Ordine del giorno", mozione: "Mozione o risoluzione", pregiudiziale: "Pregiudiziale o sospensiva", altro: "Altro", numero_legale: "Verifica del numero legale" };
+/* ---- Votazioni spiegate in parole semplici ----
+   Le descrizioni ufficiali sono abbreviate ("EM 2.8", "ODG 9/3148/28", "ART AGG 1.02"):
+   etichetta() le traduce, spiega() dice che cosa si votava e che cosa vuol dire l'esito. */
+const elenco = s => { const p = s.split(/\s*,\s*|\s+e\s+/i).filter(Boolean); return p.length > 1 ? p.slice(0, -1).join(", ") + " e " + p[p.length - 1] : p[0] || ""; };
+function etichetta(r) {
+  let o = (r.o || "").trim(), pre = "";
+  if (!o) return "Votazione senza descrizione";
+  const parti = o.split(" - ");
+  if (parti.length > 1 && /^(TU\s+)?(DDL|PDL|PDLC|DOC)\b/i.test(parti[0])) {
+    const doc = parti[0].match(/^DOC\s+([IVXLC]+)\s+N\s+(\S+)/i);
+    pre = doc ? `Doc. ${doc[1]} n. ${doc[2]}: ` : "";
+    o = parti.slice(1).join(" - ");
+  }
+  const nf = / NF$/i.test(o) ? " (nuova formulazione)" : / RIF$/i.test(o) ? " (riformulato)" : "";
+  o = o.replace(/\s+(NF|RIF)$/i, "");
+  let m, l = null;
+  if ((m = o.match(/^EMM?\.?\s+(.+)$/i)) && !/^Em\.\s/.test(o)) { const n = elenco(m[1]); l = (/ e /.test(n) ? "Emendamenti " : "Emendamento ") + n; }
+  else if ((m = o.match(/^ART\.?\s+AGG\.?\s+(.+)$/i))) { const n = elenco(m[1]); l = (/ e /.test(n) ? "Articoli aggiuntivi " : "Articolo aggiuntivo ") + n; }
+  else if ((m = o.match(/^SUBEM\s+(.+)$/i))) l = "Subemendamento " + m[1];
+  else if ((m = o.match(/^TAB\.?\s+(.+)$/i))) l = "Emendamento alla tabella " + m[1];
+  else if ((m = o.match(/^ODG\s+(?:N\s+)?(.+)$/)) && !/,/.test(o)) { const n = m[1].split("/").pop(); l = "Ordine del giorno n. " + n; }
+  else if ((m = o.match(/^QUEST\.?\s+PREG\.?\s*(.*)$/i))) { const n = elenco(m[1].replace(/^N\.?\s*/i, "")); l = (/ e /.test(n) ? "Questioni pregiudiziali n. " : "Questione pregiudiziale n. ") + n; }
+  else if ((m = o.match(/^QUEST\.?\s+SOSP\.?\s*(.*)$/i))) l = "Questione sospensiva " + m[1];
+  else if ((m = o.match(/^MANTENIMENTO ARTICOLO\s+(.+)$/i))) l = "Mantenimento dell'articolo " + m[1];
+  else if ((m = o.match(/^ARTICOLO\s+(.+)$/))) l = "Articolo " + m[1];
+  else if (/^VOTO FINALE$/i.test(o)) l = "Voto finale";
+  else if ((m = o.match(/^MOZ\.?\s+([\d-]+)(.*)$/i))) l = "Mozione n. " + m[1] + (/CPV|DISP|PREM/i.test(m[2]) ? " (solo alcune parti)" : "");
+  else if ((m = o.match(/^RIS\.?\s+([\d-]+)(.*)$/i))) l = "Risoluzione n. " + m[1] + (/CPV|DISP|PREM/i.test(m[2]) ? " (solo alcune parti)" : "");
+  else if ((m = o.match(/^DICHIARAZIONE DI URGENZA\s*(?:(PDL|DDL)\s+(\d+))?/i))) l = "Dichiarazione d'urgenza" + (m[2] ? ` della ${m[1].toUpperCase() === "DDL" ? "legge" : "proposta di legge"} n. ${m[2]}` : "");
+  else if ((m = o.match(/^PROPOSTA N\.?\s+(\S+)/i))) l = "Proposta n. " + m[1];
+  else if ((m = o.match(/^Em\.\s*([^,]+?)\s*,\s*(.+)$/))) l = `Emendamento ${m[1]} (${m[2]})`;
+  else if ((m = o.match(/^Emm\.\s*(.+?)(?:\s*,\s*([^,\d][^,]*))?$/))) l = `Emendamenti ${elenco(m[1])}${m[2] ? ` (${m[2]})` : ""}`;
+  else if ((m = o.match(/^ODG\s+(G[\w.\-]+)\s*,\s*(.+)$/))) l = `Ordine del giorno ${m[1]} (${m[2]})`;
+  return pre + (l || o) + nf;
+}
+function tipoVoto(r) {
+  const o = r.o || "", t = r.t || "", ot = o + " " + t;
+  // descrizioni con refusi che la classificazione automatica mette nella categoria sbagliata
+  if (r.c !== "emendamento" && /^(Identici )?articol[oi] agg/i.test(o)) return "artagg";
+  if (["altro", "mozione"].includes(r.c) && /^Emend|^Emm?\./i.test(o)) return "emendamento";
+  if (["altro", "mozione", "finale"].includes(r.c) && /^(ODG )?Ord\w* del gio?r?no|^Identici ordini/i.test(o)) return "odg";
+  switch (r.c) {
+    case "emendamento":
+      if (!/emend|^EMM?\b|SUBEM|TAB|ART\.? AGG|articol|urgenza|^PDL|^DDL/i.test(o)) return "altro";
+      if (/^(ART\.?\s+AGG|Articol[oi] aggiuntiv|Identici articoli aggiuntivi)/i.test(o) || / - ART\.? AGG/i.test(o)) return "artagg";
+      if (/premissiv/i.test(o)) return "premissivo";
+      if (/^SUBEM|Subemendament/i.test(o) || / - SUBEM/i.test(o)) return "subem";
+      if (/^(Emendamento\s+)?TAB\.?\s/i.test(o)) return "tabella";
+      if (/urgenza/i.test(o)) return "urgenza";
+      return "emendamento";
+    case "articolo":
+      if (/Giunta/i.test(o)) return "giunta";
+      if (/non passare all'esame/i.test(o)) return "nonpassaggio";
+      return /MANTENIMENTO|Mantenimento/.test(o) ? "mantenimento" : "articolo";
+    case "odg": return /^Proposta di discutere/i.test(o) ? "altro" : /^Mozione/i.test(o) ? "mozione" : "odg";
+    case "finale":
+      if (/^(Identici )?emendament/i.test(o)) return "emendamento";
+      if (/^Articolo\s+\d/i.test(o)) return "articolo";
+      if (/Giunta/i.test(o)) return "giunta";
+      if (/bilancio (interno )?(della Camera|del Senato)|Conto consuntivo|Rendiconto (delle )?entrate/i.test(ot)) return "bilancio_interno";
+      if (/^(DOC\b|Documento\b|Doc\.)/i.test(o)) return "documento";
+      return "finale";
+    case "fiducia":
+      if (/sfiducia|articolo 115|art\. 115/i.test(o)) return "sfiducia";
+      if (/fiducia (al )?Governo\s+\w+$|Questione di fiducia Governo|fiducia al Governo|mozione di fiducia/i.test(o)) return "fiducia_governo";
+      return "fiducia";
+    case "mozione":
+      if (/^Emm?\.|^Em\s/i.test(o)) return "emendamento";
+      if (/^Articolo\s+\d/i.test(o)) return "articolo";
+      return /risoluz|^RIS\b|Prop\.?\s?ris|Comunicaz|Relazione/i.test(o) ? "risoluzione" : "mozione";
+    case "pregiudiziale": return /sospensiv|SOSP/i.test(o) ? "sospensiva" : "pregiudiziale";
+    case "numero_legale": return "numero_legale";
+    default:
+      if (/urgenza/i.test(o)) return "urgenza";
+      if (/Controprova/i.test(o)) return "controprova";
+      if (/annullat/i.test(o)) return "annullata";
+      if (/Giunta/i.test(o)) return "giunta";
+      if (/non passare all'esame/i.test(o)) return "nonpassaggio";
+      if (/elezione|Elezione/.test(o)) return "elezione";
+      if (/bilancio interno|Rendiconto|Conto consuntivo|Progetto di bilancio/i.test(o)) return "bilancio_interno";
+      if (/risoluz|Prop\.?\s?ris/i.test(o)) return "risoluzione";
+      return "altro";
+  }
+}
+const SPIEGA = {
+  emendamento: ["Un emendamento è una proposta di modifica al testo della legge: può togliere, aggiungere o riscrivere parole e commi. Il primo numero indica l'articolo a cui si riferisce (l'emendamento 2.8 riguarda l'articolo 2). Se più emendamenti identici sono votati insieme, il voto vale per tutti.", "il testo della legge è modificato come proposto.", "il testo della legge resta com'era."],
+  artagg: ["Un articolo aggiuntivo è una proposta di inserire nella legge un articolo nuovo. Il numero dice dove: 1.02 vuol dire un nuovo articolo dopo l'articolo 1.", "il nuovo articolo entra nella legge.", "il nuovo articolo non entra nella legge."],
+  premissivo: ["Un articolo premissivo è una proposta di inserire un articolo nuovo prima di quello indicato.", "il nuovo articolo entra nella legge.", "il nuovo articolo non entra nella legge."],
+  subem: ["Un subemendamento è una proposta di modifica a un emendamento: la modifica di una modifica.", "l'emendamento a cui si riferisce cambia come proposto.", "l'emendamento resta com'era."],
+  tabella: ["Proposta di modifica a una delle tabelle allegate alla legge, che di solito contengono cifre come stanziamenti e importi.", "la tabella è modificata.", "la tabella resta com'era."],
+  articolo: ["Voto su un singolo articolo della legge, nel testo che risulta dagli emendamenti approvati. Le leggi si votano articolo per articolo e poi tutte intere con il voto finale.", "l'articolo resta nella legge.", "l'articolo è tolto dalla legge."],
+  mantenimento: ["Si vota se mantenere l'articolo indicato: chi vota no vuole toglierlo dalla legge.", "l'articolo resta nella legge.", "l'articolo è tolto dalla legge."],
+  odg: ["Un ordine del giorno è un testo collegato alla legge in discussione con cui si chiede al Governo di impegnarsi a fare qualcosa, per esempio stanziare fondi o applicare la legge in un certo modo. Non cambia il testo della legge e non è un obbligo giuridico, ma è un impegno politico.", "il Governo è impegnato, sul piano politico, a fare quanto chiesto.", "nessun impegno per il Governo."],
+  finale: ["Voto sulla legge nel suo insieme, dopo l'esame di articoli ed emendamenti.", "la legge è approvata da questo ramo del Parlamento: passa all'altro ramo oppure, se l'altro l'aveva già approvata nello stesso testo, è approvata in via definitiva.", "la legge è respinta e non va avanti."],
+  fiducia: ["Il Governo ha posto la «questione di fiducia»: chiede di approvare il testo così com'è e lega a questo voto la propria permanenza in carica. In questo modo gli emendamenti non vengono votati.", "il testo è approvato senza modifiche e il Governo resta in carica.", "il Governo è battuto e deve dimettersi."],
+  fiducia_governo: ["Voto con cui la Camera o il Senato concede o nega la fiducia a un Governo appena nominato. Senza la fiducia di entrambe le Camere il Governo non può restare in carica.", "la fiducia è concessa.", "la fiducia è negata e il Governo deve dimettersi."],
+  sfiducia: ["Una mozione di sfiducia chiede che il Governo, o un singolo ministro, lasci l'incarico.", "il Governo o il ministro deve dimettersi.", "il Governo o il ministro resta in carica."],
+  mozione: ["Una mozione è un documento con cui l'Aula prende posizione su un tema e chiede al Governo di agire in un certo modo. Non è una legge.", "la mozione diventa la posizione dell'Aula e impegna politicamente il Governo.", "nessun impegno per il Governo."],
+  risoluzione: ["Una risoluzione è un atto con cui l'Aula indica al Governo una linea da seguire. Spesso si vota dopo le comunicazioni del Presidente del Consiglio o di un ministro, per esempio prima di un Consiglio europeo, o su documenti come il piano di finanza pubblica.", "la risoluzione impegna politicamente il Governo.", "nessun impegno per il Governo."],
+  pregiudiziale: ["Una questione pregiudiziale chiede di non esaminare affatto la legge, di solito perché la si ritiene contraria alla Costituzione. In genere la presentano le opposizioni.", "l'esame della legge si ferma.", "l'esame della legge prosegue."],
+  sospensiva: ["Una questione sospensiva chiede di rinviare l'esame della legge.", "l'esame è rinviato.", "l'esame prosegue."],
+  numero_legale: ["Non è un voto su un testo: serve a controllare che in Aula ci sia il numero minimo di presenti perché le votazioni siano valide.", "", ""],
+  urgenza: ["Si vota se dichiarare urgente una proposta di legge: in quel caso i tempi per esaminarla si riducono.", "la legge è dichiarata urgente.", "la legge segue i tempi normali."],
+  nonpassaggio: ["Si vota la proposta di non passare all'esame degli articoli, che di fatto ferma la legge.", "la legge si ferma.", "l'esame della legge prosegue."],
+  controprova: ["Si ripete la votazione appena fatta per verificarne il risultato.", "", ""],
+  annullata: ["La votazione è stata annullata e il suo risultato non vale.", "", ""],
+  giunta: ["Voto su una proposta della Giunta per le autorizzazioni (o delle elezioni e delle immunità) che riguarda un parlamentare: per esempio se autorizzare l'uso di intercettazioni o se le sue dichiarazioni sono coperte dall'insindacabilità prevista dall'articolo 68 della Costituzione.", "la proposta della Giunta è accolta.", "la proposta della Giunta è respinta."],
+  documento: ["Voto su un documento parlamentare, per esempio una relazione o un parere su atti dell'Unione europea: non è una legge.", "il documento è approvato.", "il documento è respinto."],
+  bilancio_interno: ["Voto sul bilancio interno della Camera o del Senato, cioè sulle spese per il funzionamento dell'istituzione.", "il bilancio è approvato.", "il bilancio è respinto."],
+  elezione: ["Votazione per eleggere i componenti di un organo, per esempio una delegazione o un consiglio.", "", ""],
+  altro: ["Votazione su una questione di procedura o su un atto che la banca dati ufficiale non classifica.", "", ""],
+};
+const TESTO_NON_APERTO = { emendamento: "di questo emendamento", artagg: "di questo articolo aggiuntivo", premissivo: "di questo articolo", subem: "di questo subemendamento", tabella: "di questa modifica", odg: "di questo ordine del giorno", mozione: "di questa mozione", risoluzione: "di questa risoluzione", pregiudiziale: "della questione", sospensiva: "della questione" };
+const LEGGE = new Set(["emendamento", "artagg", "premissivo", "subem", "tabella", "articolo", "mantenimento", "odg", "finale", "fiducia", "pregiudiziale", "sospensiva", "urgenza", "nonpassaggio"]);
+function spiegaVoto(r) {
+  const k = tipoVoto(r), [cosa, si, no] = SPIEGA[k] || SPIEGA.altro, p = [];
+  const legge = LEGGE.has(k) && (r.t || r.a);
+  if (legge) {
+    const scheda = r.ramo === "camera" && r.a ? ` · <a href="https://www.camera.it/leg19/126?pdl=${encodeURIComponent(r.a)}" target="_blank" rel="noopener">scheda della legge sul sito della Camera</a>` : "";
+    p.push(`<p><b>Legge in discussione:</b> ${r.t ? esc(r.t) : "titolo non ancora disponibile nei dati aperti"}${r.a ? ` (atto Camera n. ${esc(r.a)})` : ""}${scheda}</p>`);
+  }
+  p.push(`<p><b>Che cosa si votava:</b> ${esc(cosa)}</p>`);
+  if (legge && /^Conversione in legge/i.test(r.t)) p.push(`<p><b>Che cos'è un decreto-legge:</b> una norma che il Governo può adottare nei casi di urgenza. Vale subito, ma decade se il Parlamento non la converte in legge entro 60 giorni.</p>`);
+  if (legge && /^Ratifica/i.test(r.t)) p.push(`<p><b>Legge di ratifica:</b> autorizza il Presidente della Repubblica a ratificare un accordo internazionale e lo rende applicabile in Italia.</p>`);
+  if ((k === "mozione" || k === "risoluzione") && /limitatamente|capovers|dispositiv|premess|CPV|DISP|PREM|\(prem/i.test(r.o)) p.push(`<p>In questa votazione si decide solo su una parte del documento (alcune premesse o alcuni impegni).</p>`);
+  if (r.e === 1 && si) p.push(`<p><b>Esito: approvata</b>, quindi ${esc(si)}</p>`);
+  else if (r.e === 0 && no) p.push(`<p><b>Esito: respinta</b>, quindi ${esc(no)}</p>`);
+  const nome = etichetta(r) !== r.o ? `Nome ufficiale nella banca dati: ${esc(r.o)}. ` : "";
+  const testo = TESTO_NON_APERTO[k] ? `Il testo preciso ${TESTO_NON_APERTO[k]} non è nei dati aperti: si legge nel resoconto della seduta, raggiungibile dalla scheda ufficiale della votazione qui sotto.` : "";
+  if (nome || testo) p.push(`<p class="src">${nome}${testo}</p>`);
+  return `<div class="spiega"><h4>Su cosa si votava</h4>${p.join("")}</div>`;
+}
 const COD = { F: "Favorevoli", C: "Contrari", A: "Astenuti", V: "Hanno votato (scrutinio segreto)", N: "Presenti non votanti", P: "Presidente di turno", M: "In missione o in congedo", "-": "Assenti", ".": "Non in carica" };
 const COD1 = { F: "Sì", C: "No", A: "Astenuto", V: "Ha votato (segreto)", N: "Presente, non ha votato", P: "Presidente di turno", M: "In missione", "-": "Assente", ".": "Non in carica" };
 const POS = { F: ["S", "Sì"], C: ["N", "No"], A: ["A", "Ast."], D: ["X", "Diviso"], "-": ["O", "—"], ".": ["O", "—"], V: ["X", "Votato"], N: ["O", "Pres."], P: ["O", "Pres."], M: ["O", "Miss."] };
@@ -1143,8 +1280,8 @@ function prepara(ramo, M, Gs, I) {
       dis: st.cmp ? st.dis / st.cmp : null, cambi: cambiN[m.i] || 0, st
     });
   });
-  const righe = I.righe.map((r, k) => ({ ramo, k, id: r[0], d: r[1], n: r[2], t: r[3] || "", o: r[4] || "", c: r[5], f: r[6] || "", e: r[7], F: r[8], C: r[9], A: r[10], p: r[11] || "", pm: r[12], uff: r[13] }));
-  righe.forEach(r => { r.q = (r.o + " " + r.t).toLowerCase(); });
+  const righe = I.righe.map((r, k) => ({ ramo, k, id: r[0], d: r[1], n: r[2], t: r[3] || "", o: r[4] || "", c: r[5], f: r[6] || "", e: r[7], F: r[8], C: r[9], A: r[10], p: r[11] || "", pm: r[12], uff: r[13], a: r[14] || null }));
+  righe.forEach(r => { r.l = etichetta(r); r.q = (r.o + " " + r.l + " " + r.t + (r.a ? " " + r.a : "")).toLowerCase(); });
   return { ramo, G, membri, ordine: I.gruppi, righe, conv: Gs.convergenza, cambi: Gs.cambi };
 }
 
@@ -1480,17 +1617,18 @@ function vRow(r) {
   const [F, C, A] = (r.uff && r.uff[0] != null) ? r.uff : [r.F, r.C, r.A];
   const tot = (F || 0) + (C || 0) + (A || 0);
   const seg = (k, cls, lab) => k ? `<span class="${cls}" style="flex:${k} 1 0" title="${lab}: ${k}"></span>` : "";
-  const titolo = r.o || r.t || "Votazione senza descrizione";
-  const sub = r.o && r.t && r.t !== r.o ? r.t : "";
+  const titolo = r.o ? r.l : r.t || "Votazione senza descrizione";
+  const legge = r.a || ["emendamento", "articolo", "odg", "finale", "fiducia", "pregiudiziale"].includes(r.c);
+  const sub = r.o && r.t && r.t !== r.o && r.t !== r.l ? (legge ? `<b>Legge:</b> ${esc(r.t)}` : esc(r.t)) : (r.a ? `<b>Legge:</b> atto Camera n. ${esc(r.a)}` : "");
   const chips = r.c === "numero_legale" ? `<span>Serve solo a verificare che in Aula ci sia il numero minimo di presenti.</span>` : segreta ? `<span>Scrutinio segreto: il voto dei singoli non è pubblico.</span>`
     : R.ordine.map((gid, i) => { const c = r.p[i]; if (!c || c === ".") return ""; return `<span title="${esc(gn(R, gid))}">${esc(gl(R, gid))} ${chip(c)}</span>`; }).join("");
   return `<article class="card vrow" data-id="${r.ramo}:${r.k}">
     <div class="vmeta"><b class="num">${fmtDate(r.d)}</b><span>·</span><span>${RAMI[r.ramo].breve}${r.n ? ` · votazione n. ${r.n}` : ""}</span><span class="badge">${esc(CAT[r.c] || r.c)}</span>${r.f.includes("Q") && r.c !== "fiducia" ? '<span class="flagtag">questione di fiducia</span>' : ""}${segreta ? '<span class="flagtag">segreta</span>' : ""}${motivi(r).filter(m => m === "Esito sul filo" || m === "Maggioranza divisa").map(m => `<span class="flagtag">${m}</span>`).join("")}${r.e != null ? `<span class="esito">${r.e ? "Approvata" : "Respinta"}</span>` : ""}</div>
-    <h3 class="vt">${esc(titolo)}</h3>${sub ? `<p class="sub">${esc(sub)}</p>` : ""}
+    <h3 class="vt">${esc(titolo)}</h3>${sub ? `<p class="sub">${sub}</p>` : ""}
     ${tot ? `<div class="tab-bar slim" role="img" aria-label="Favorevoli ${F || 0}, contrari ${C || 0}, astenuti ${A || 0}">${seg(F, "S", "Favorevoli")}${seg(C, "N", "Contrari")}${seg(A, "A", "Astenuti")}</div>
     <div class="tab-legend sm"><span><b class="num">${F || 0}</b> favorevoli</span><span><b class="num">${C || 0}</b> contrari</span><span><b class="num">${A || 0}</b> astenuti</span></div>` : ""}
     <div class="gpos">${chips}</div>
-    <button class="link" data-det aria-expanded="false">Dettagli e voto di ogni ${RAMI[r.ramo].uno}</button>
+    <button class="link" data-det aria-expanded="false">Su cosa si votava e voto di ogni ${RAMI[r.ramo].uno}</button>
     <div class="det"></div>
   </article>`;
 }
@@ -1509,10 +1647,10 @@ async function apriDettaglio(art) {
   const det = $(".det", art), btn = $("button[data-det]", art);
   if (det.innerHTML) { det.innerHTML = ""; btn.setAttribute("aria-expanded", "false"); return; }
   btn.setAttribute("aria-expanded", "true");
-  det.innerHTML = `<p class="loading">Carico il dettaglio…</p>`;
+  det.innerHTML = `${spiegaVoto(r)}<p class="loading">Carico il voto di ogni ${RAMI[ramo].uno}…</p>`;
   let v;
-  try { v = (await mese(ramo, r.d.slice(0, 7)))[r.id]; } catch (e) { det.innerHTML = `<p class="empty">Dettaglio non disponibile (${esc(e.message)}).</p>`; return; }
-  if (!v) { det.innerHTML = `<p class="empty">Dettaglio non trovato nell'archivio.</p>`; return; }
+  try { v = (await mese(ramo, r.d.slice(0, 7)))[r.id]; } catch (e) { det.innerHTML = `${spiegaVoto(r)}<p class="empty">Voti nominativi non disponibili (${esc(e.message)}).</p>`; return; }
+  if (!v) { det.innerHTML = `${spiegaVoto(r)}<p class="empty">Voti nominativi non trovati nell'archivio.</p>`; return; }
   const t = v.tot || [];
   const gids = R.ordine.filter(g => v.g && v.g[g]);
   const tab = `<div class="tbl-scroll"><table><thead><tr><th>Gruppo</th><th class="n">Sì</th><th class="n">No</th><th class="n">Ast.</th><th class="n">Altri presenti</th><th class="n">Missione</th><th class="n">Assenti</th><th class="n">Posizione</th></tr></thead><tbody>${gids.map(g => {
@@ -1526,7 +1664,7 @@ async function apriDettaglio(art) {
     return `<details><summary>${COD[c]}: ${per[c].length}</summary><p class="names">${lista}</p></details>`;
   }).join("");
   const chk = v.chk ? `<p class="note">I voti nominativi pubblicati non coincidono del tutto con il risultato ufficiale (favorevoli ${fmtSigned(v.chk[0], 0)}, contrari ${fmtSigned(v.chk[1], 0)}, astenuti ${fmtSigned(v.chk[2], 0)}). Succede, per esempio, quando un parlamentare segnala in Aula di aver sbagliato a votare. Fa fede il risultato ufficiale.</p>` : "";
-  det.innerHTML = `
+  det.innerHTML = `${spiegaVoto(r)}
     <div class="tab-legend">${t[0] != null ? `<span>Presenti <b class="num">${t[0]}</b></span>` : ""}${t[1] != null ? `<span>Votanti <b class="num">${t[1]}</b></span>` : ""}${t[5] != null ? `<span>Maggioranza richiesta <b class="num">${t[5]}</b></span>` : ""}</div>
     ${tab}${chk}
     <div>${nomi}</div>
@@ -1615,7 +1753,7 @@ async function renderParlDet() {
   const righeDiv = div.slice(0, 40).map(([k, c]) => {
     const r = R.righe[k]; if (!r) return "";
     const g = gruppoAlla(m, r.d), gi = R.ordine.indexOf(g), pg = gi >= 0 ? r.p[gi] : "-";
-    return `<tr><td class="num">${fmtDate(r.d)}</td><td>${esc(r.o || r.t)}${r.o && r.t ? `<br><span class="src">${esc(r.t)}</span>` : ""}</td><td class="n">${chip(c)}</td><td class="n">${esc(gl(R, g))} ${chip(pg)}</td></tr>`;
+    return `<tr><td class="num">${fmtDate(r.d)}</td><td>${esc(r.o ? r.l : r.t)}${r.o && r.t && r.t !== r.l ? `<br><span class="src">${esc(r.t)}</span>` : ""}</td><td class="n">${chip(c)}</td><td class="n">${esc(gl(R, g))} ${chip(pg)}</td></tr>`;
   }).join("");
   el.innerHTML = `
     <div class="party-head"><h3>${esc(m.nome)} ${esc(m.cognome)}</h3><button class="chip close" id="parl-chiudi">Chiudi</button></div>
@@ -1641,7 +1779,7 @@ async function renderParlDet() {
     const dati = await Promise.all(mesi.map(x => mese(ramo, x)));
     const tutte = Object.assign({}, ...dati);
     const lista = ultime.slice(-30).reverse().map(r => ({ r, v: tutte[r.id] })).filter(x => x.v && (x.v.v[i] || ".") !== ".");
-    if (pf.sel && pf.sel[0] === ramo && pf.sel[1] === i) $("#parl-ultimi").innerHTML = lista.length ? `<div class="tbl-scroll"><table><thead><tr><th>Data</th><th>Votazione</th><th class="n">Voto</th></tr></thead><tbody>${lista.slice(0, 20).map(({ r, v }) => `<tr><td class="num">${fmtDate(r.d)}</td><td>${esc(r.o || r.t)}</td><td class="n">${"FCA".includes(v.v[i]) ? chip(v.v[i]) : `<span class="src">${COD1[v.v[i]] || v.v[i]}</span>`}</td></tr>`).join("")}</tbody></table></div>` : `<p class="empty">Nessuna votazione recente mentre era in carica.</p>`;
+    if (pf.sel && pf.sel[0] === ramo && pf.sel[1] === i) $("#parl-ultimi").innerHTML = lista.length ? `<div class="tbl-scroll"><table><thead><tr><th>Data</th><th>Votazione</th><th class="n">Voto</th></tr></thead><tbody>${lista.slice(0, 20).map(({ r, v }) => `<tr><td class="num">${fmtDate(r.d)}</td><td>${esc(r.o ? r.l : r.t)}${r.o && r.t && r.t !== r.l ? `<br><span class="src">${esc(r.t)}</span>` : ""}</td><td class="n">${"FCA".includes(v.v[i]) ? chip(v.v[i]) : `<span class="src">${COD1[v.v[i]] || v.v[i]}</span>`}</td></tr>`).join("")}</tbody></table></div>` : `<p class="empty">Nessuna votazione recente mentre era in carica.</p>`;
   } catch (e) { $("#parl-ultimi").innerHTML = `<p class="empty">Ultimi voti non disponibili (${esc(e.message)}).</p>`; }
 }
 
@@ -1696,6 +1834,7 @@ function renderMetodo() {
       <li><b>Parlamentari, gruppi e votazioni</b>: dati aperti ufficiali della <a href="https://dati.camera.it/" target="_blank" rel="noopener">Camera dei deputati</a> (licenza CC BY-SA 4.0) e del <a href="https://dati.senato.it/" target="_blank" rel="noopener">Senato della Repubblica</a> (licenza CC BY 3.0), interrogati ogni notte attraverso i loro servizi pubblici (SPARQL). Vengono scaricate tutte le votazioni elettroniche della XIX legislatura, con il voto di ogni deputato e senatore.${m.camera ? ` Archivio attuale: ${m.camera.votazioni.toLocaleString("it-IT")} votazioni della Camera` : ""}${m.senato ? ` e ${m.senato.votazioni.toLocaleString("it-IT")} del Senato` : ""}.</li>
       <li><b>Aggiornamento</b>: un processo automatico gira ogni notte, scarica le nuove votazioni, riscarica gli ultimi giorni (le istituzioni a volte pubblicano con qualche giorno di ritardo), aggiorna gruppi e cambi di gruppo, ricalcola tutti gli indicatori e pubblica il sito. Per ogni votazione controlla che la somma dei voti individuali coincida con il risultato ufficiale e segnala le differenze.</li>
       <li><b>Votazioni in evidenza</b>: le 10 schede di contesto sono scritte e verificate a mano da resoconti di agenzie e testate, linkati in ogni scheda.</li>
+      <li><b>Su cosa si votava</b>: le sigle ufficiali (per esempio "EM 2.8" o "ODG 9/3148/28") sono tradotte in parole semplici e ogni votazione è collegata alla legge in discussione, ricavata dal numero dell'atto citato nella votazione o, per le sigle brevi, dalla votazione precedente della stessa seduta. Il titolo della legge viene dai dati ufficiali della Camera e del Senato. La spiegazione di che cosa significa votare un emendamento, un ordine del giorno o una fiducia è generale e vale per tutte le votazioni di quel tipo: il testo preciso di ogni emendamento o ordine del giorno non è nei dati aperti e si legge nei resoconti delle sedute.</li>
       <li><b>Leader e capigruppo</b>: i presidenti dei gruppi arrivano ogni giorno dai dati ufficiali di Camera e Senato. I leader di partito e le famiglie politiche europee non sono pubblicati in dati aperti affidabili e sono verificati a mano (fonti sotto la tabella nella sezione Parlamento).</li>
       <li><b>Votazioni più rilevanti</b>: scelte in automatico con criteri fissi (voti finali, fiducie, scarti minimi, maggioranza divisa), senza giudizi sul contenuto.</li>
       <li><b>Governi</b>: <a href="${GOV_SRC.url}" target="_blank" rel="noopener">${GOV_SRC.label}</a>. <b>Economia</b>: PIL reale e rendimenti dei titoli di Stato (OCSE), PIL pro capite e inflazione (Banca Mondiale), debito e deficit (FMI fino al 2021, ISTAT dal 2022), disoccupazione e occupazione (OCSE), tramite il database FRED della Federal Reserve di St. Louis; pressione fiscale e povertà dai comunicati ISTAT. Questi dati sono annuali e si aggiornano a mano quando escono i nuovi valori.</li>

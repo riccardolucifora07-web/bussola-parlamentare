@@ -197,6 +197,13 @@ def risposta(nome, q):
     elif nome == "camera_atti":
         for v in [v for v in D_["cvot"] if v["d"] == giorno and v["nv"] in (1, 2, 4)]:
             righe.append({"v": U(v["uri"]), "atto": U(f"{OCD}attocamera.rdf/ac19_1234"), "titolo": L("Disposizioni in materia di prova")})
+    elif nome == "camera_titoli_atti":
+        if "VALUES" not in q:
+            raise KeyError("manca VALUES")
+        for n in re.findall(r"attocamera\.rdf/ac19_(\d+)>", q):
+            if n == "1234":
+                righe.append({"atto": U(f"{OCD}attocamera.rdf/ac19_{n}"),
+                              "titolo": L('ROSSI ed altri: "Disposizioni in materia di prova" (1234)')})
     elif nome == "camera_voti":
         for v in [v for v in D_["cvot"] if v["d"] == giorno and f"<{v['uri']}>" in q]:
             righe += [{"v": U(v["uri"]), "dep": U(d), "espr": L(e)} for d, e in v["voti"].items()]

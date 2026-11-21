@@ -89,6 +89,12 @@ def main():
         assert Vs[1]["c"] == "emendamento"
         I = leggi(os.path.join(dati, "camera", "indice.json"))  # noqa: E741
         assert len(I["righe"]) == 24 and len(I["righe"][0][11]) == len(I["gruppi"])
+        assert I["campi"][14] == "atto"
+        r_art = next(r for r in I["righe"] if r[4] == "DDL 1234 - ART. 1")
+        assert r_art[3] == "Disposizioni in materia di prova" and r_art[14] == "1234", r_art
+        r_moz = next(r for r in I["righe"] if r[4].upper().startswith("MOZIONE"))
+        assert r_moz[14] is None, r_moz
+        assert leggi(os.path.join(dati, "camera", "atti.json")) == {"1234": 'ROSSI ed altri: "Disposizioni in materia di prova" (1234)'}
         st = membri[0]["st"]
         assert st["tot"] == 24 and st["pres"] + st["mis"] + st["ass"] == st["tot"], st
 
@@ -158,6 +164,41 @@ def prova_coalizioni():
     print("prova coalizioni superata")
 
 
+def prova_atti():
+    """Legge in discussione ricavata dalle descrizioni brevi della Camera."""
+    sys.path.insert(0, os.path.join(RADICE, "scripts"))
+    import atti
+    s, d = "s19_737", "2026-11-03"
+    vot = [
+        {"id": "a", "d": d, "s": s, "n": 1, "o": "DICHIARAZIONE DI URGENZA PDL 2916", "t": "", "c": "altro"},
+        {"id": "b", "d": d, "s": s, "n": 2, "o": "DDL 3159 - QUEST PREG 1, 2, 3 E 4", "t": "", "c": "pregiudiziale"},
+        {"id": "c", "d": d, "s": s, "n": 3, "o": "DDL 3148 - EM 1.1", "t": "", "c": "emendamento"},
+        {"id": "e", "d": d, "s": s, "n": 4, "o": "EM 1.2", "t": "", "c": "emendamento"},
+        {"id": "f", "d": d, "s": s, "n": 5, "o": "ODG 9/3148/28", "t": "Ordine del giorno 9/3148/28", "c": "odg"},
+        {"id": "g", "d": d, "s": s, "n": 6, "o": "MOZ 1-346 CPV 1,2 DISP", "t": "", "c": "mozione"},
+        {"id": "h", "d": d, "s": s, "n": 7, "o": "ODG 9/3148/29", "t": "", "c": "odg"},
+        {"id": "l", "d": d, "s": s, "n": 8, "o": "DOC VIII N 7 - VOTO FINALE", "t": "", "c": "finale"},
+        {"id": "m", "d": d, "s": s, "n": 9, "o": "Documento approvato dalla XIV Commissione", "t": "", "c": "finale"},
+        {"id": "i", "d": "2026-11-04", "s": "s19_738", "n": 1, "o": "EM 2.1", "t": "", "c": "emendamento"},
+        {"id": "j", "d": "2025-01-10", "s": "s19_400", "n": 1, "o": "Emendamento 1.3 ROSSI MARIO (PD-IDP)",
+         "t": 'S. 1359. - "Conversione in legge del decreto-legge 24 gennaio 2025, n. 3" <em>(approvato dal Senato)</em> (2213)', "c": "emendamento"},
+        {"id": "k", "d": "2025-01-10", "s": "s19_400", "n": 2, "o": "Ordine del giorno n. 9/2213/4 BIANCHI LUCA (FDI)",
+         "t": "Ordine del giorno 9/2213/4 DDL n. 2213", "c": "odg"},
+    ]
+    col = atti.collega(vot, {"3159": '"Disposizioni sul turismo" (3159)'})
+    assert col["a"] == ("2916", ""), col["a"]
+    assert col["b"] == ("3159", "Disposizioni sul turismo"), col["b"]
+    assert col["c"] == col["e"] == col["f"] == col["h"] == ("3148", ""), col
+    assert not {"g", "i", "l", "m"} & set(col), "mozioni, documenti e sedute senza riferimento restano senza legge"
+    assert col["j"] == col["k"] == ("2213", "Conversione in legge del decreto-legge 24 gennaio 2025, n. 3"), col["j"]
+    assert atti.numeri_senza_titolo(col) == ["2916", "3148"]
+    assert atti.titolo_indice(vot[4], None) == "" and atti.titolo_indice({"t": "Legge sulle PMI"}, None) == "Legge sulle PMI"
+    lungo = atti.titolo_indice({}, ("1", "parola " * 60))
+    assert len(lungo) <= 200 and lungo.endswith("parola…"), lungo
+    print("prova atti superata")
+
+
 if __name__ == "__main__":
     prova_coalizioni()
+    prova_atti()
     main()

@@ -209,6 +209,18 @@ SELECT ?v ?dep ?espr WHERE {{ VALUES ?v {{ %VALORI% }} ?voto ocd:rif_votazione ?
     return out
 
 
+def titoli_atti(ep, numeri):
+    """{numero: titolo ufficiale} degli atti Camera della XIX legislatura (es. 3148)."""
+    uris = {f"http://dati.camera.it/ocd/attocamera.rdf/ac19_{n}": n for n in numeri}
+    out = {}
+    for r in ep.query_lotti("""# q:camera_titoli_atti
+SELECT ?atto ?titolo WHERE { VALUES ?atto { %VALORI% } ?atto dc:title ?titolo . }""", sorted(uris), 50):
+        n = uris.get(str(r.get("atto")))
+        if n and r.get("titolo"):
+            out.setdefault(n, str(r["titolo"]))
+    return out
+
+
 def _numero(identificativo, seduta):
     """dc:identifier è seduta*1000 + numero (es. 747001 = seduta 747, votazione 1)."""
     try:

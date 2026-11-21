@@ -21,6 +21,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+import atti  # noqa: E402
 import camera  # noqa: E402
 import senato  # noqa: E402
 from calcoli import Calcolo, in_carica, unisci_intervalli  # noqa: E402
@@ -214,6 +215,30 @@ def salva_anagrafe(cart, membri, gruppi, extra=None):
 
 
 # ---------- un ramo ----------
+def collega_atti(ramo, cart, votazioni, ep=None):
+    """Numero e titolo della legge in discussione per ogni votazione della Camera.
+    Con l'endpoint (aggiornamento normale) chiede i titoli che mancano e li conserva in atti.json."""
+    if ramo != "camera":
+        return {}
+    percorso = os.path.join(cart, "atti.json")
+    cache = leggi_json(percorso, {}) or {}
+    collegamenti = atti.collega(votazioni, cache)
+    mancanti = atti.numeri_senza_titolo(collegamenti)
+    if mancanti and ep is not None:
+        try:
+            nuovi = camera.titoli_atti(ep, mancanti)
+            log(f"[camera] titoli delle leggi: {len(nuovi)} trovati su {len(mancanti)} mancanti")
+            if nuovi:
+                cache.update(nuovi)
+                scrivi_json(percorso, dict(sorted(cache.items(), key=lambda x: int(x[0]))))
+                collegamenti = atti.collega(votazioni, cache)
+        except Exception as e:  # noqa: BLE001
+            log(f"[camera] titoli delle leggi non disponibili: {e}")
+    con_titolo = sum(1 for _, t in collegamenti.values() if t)
+    log(f"[camera] legge in discussione individuata per {len(collegamenti)} votazioni su {len(votazioni)}, con titolo per {con_titolo}")
+    return collegamenti
+
+
 def aggiorna_ramo(ramo, dati_dir, scadenza, rifai, endpoint_url, solo_calcoli, regole, pausa, governo=None):
     mod = camera if ramo == "camera" else senato
     cart = os.path.join(dati_dir, ramo)
@@ -305,15 +330,16 @@ def aggiorna_ramo(ramo, dati_dir, scadenza, rifai, endpoint_url, solo_calcoli, r
     tutte = [v for _, vs in per_file for v in vs]
     normalizza_assenti(tutte, membri)
     oggi = dt.date.today().isoformat()
+    collegamenti = collega_atti(ramo, cart, tutte, None if solo_calcoli else ep)
     ris = Calcolo(membri, gruppi, tutte, oggi, (governo or {}).get("dal")).esegui()
     for p, vs in per_file:
         scrivi_json(p, {"votazioni": vs})
-    righe = [[v["id"], v["d"], v.get("n"), v.get("t", "")[:200], v.get("o", "")[:200], v["c"], v["f"],
+    righe = [[v["id"], v["d"], v.get("n"), atti.titolo_indice(v, collegamenti.get(v["id"]))[:200], v.get("o", "")[:200], v["c"], v["f"],
               v.get("e"), v["v"].count("F"), v["v"].count("C"), v["v"].count("A"), v.get("p", ""),
-              v.get("pm", "-"), v.get("tot", [None] * 6)[2:5]] for v in tutte]
+              v.get("pm", "-"), v.get("tot", [None] * 6)[2:5], (collegamenti.get(v["id"]) or (None,))[0]] for v in tutte]
     scrivi_json(os.path.join(cart, "indice.json"), {
         "campi": ["id", "data", "numero", "titolo", "oggetto", "categoria", "flag", "esito",
-                  "F", "C", "A", "posizioni", "maggioranza", "ufficiali_FCA"],
+                  "F", "C", "A", "posizioni", "maggioranza", "ufficiali_FCA", "atto"],
         "gruppi": ris["ordine"], "righe": righe,
     })
     salva_anagrafe(cart, membri, gruppi)
