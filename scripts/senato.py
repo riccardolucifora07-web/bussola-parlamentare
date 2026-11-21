@@ -9,6 +9,7 @@ from comune import INIZIO_LEG, data_iso, nome_gruppo, nome_locale, nome_proprio,
 
 ENDPOINT = "https://dati.senato.it/sparql"
 LEG = 19
+MAX_URL = 1800  # oltre circa 2.000 caratteri l'endpoint risponde 403
 
 CODICI = {
     "favorevole": "F", "contrario": "C", "astenuto": "A", "votante": "V",
@@ -20,6 +21,9 @@ CODICI = {
 def _mandati_da_righe(righe):
     out = {}
     for r in righe:
+        # la banca dati del Senato elenca anche i mandati alla Camera degli ex senatori (C_19_...)
+        if r.get("m") and nome_locale(r["m"]).startswith("C_"):
+            continue
         s = out.setdefault(r["s"], {
             "id": r["s"], "nome": nome_proprio(r.get("nome")), "cognome": nome_proprio(r.get("cognome")),
             "sesso": "", "mandati": [], "tipo": "",
@@ -126,9 +130,9 @@ SELECT DISTINCT ?s ?data ?num WHERE {{
 def votazioni_seduta(ep, seduta):
     # l'endpoint del Senato non conosce VALUES e rifiuta le richieste POST:
     # lotti di votazioni con FILTER IN, in GET (circa 350 righe per votazione)
-    uris = sorted({r["v"] for r in ep.query(f"""# q:senato_lista seduta={seduta['uri']}
+    uris = sorted({r["v"] for r in ep.query(f"""# q:senato_lista seduta={nome_locale(seduta['uri'])}
 SELECT ?v WHERE {{ ?v a osr:Votazione ; osr:seduta <{seduta['uri']}> . }}""")})
-    righe = ep.query_lotti(f"""# q:senato_votazioni seduta={seduta['uri']}
+    righe = ep.query_lotti(f"""# q:senato_votazioni seduta={nome_locale(seduta['uri'])}
 SELECT ?v ?p ?o WHERE {{
   ?v a osr:Votazione ; osr:seduta <{seduta['uri']}> ; ?p ?o .
   FILTER (?v IN (%VALORI%))
@@ -151,7 +155,7 @@ SELECT ?v ?p ?o WHERE {{
 
     titoli = {}
     try:
-        for r in ep.query(f"""# q:senato_ddl seduta={seduta['uri']}
+        for r in ep.query(f"""# q:senato_ddl seduta={nome_locale(seduta['uri'])}
 SELECT DISTINCT ?v ?ddl ?titolo ?breve WHERE {{
   ?v a osr:Votazione ; osr:seduta <{seduta['uri']}> ; osr:oggetto ?og .
   ?og osr:relativoA ?ddl .

@@ -24,7 +24,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import camera  # noqa: E402
 import senato  # noqa: E402
 from calcoli import Calcolo, in_carica, unisci_intervalli  # noqa: E402
-from comune import CATEGORIE, categoria, leggi_json, nome_locale, pulisci_testo, scrivi_json  # noqa: E402
+from comune import CATEGORIE, INIZIO_LEG, categoria, leggi_json, nome_locale, pulisci_testo, scrivi_json  # noqa: E402
 from sparql import Endpoint  # noqa: E402
 
 RADICE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -132,6 +132,19 @@ def costruisci_record(v, k, indice_uri, membri_per_i):
     return rec
 
 
+def normalizza_assenti(votazioni, membri):
+    """Chi risultava 'assente' in una data in cui non era in carica (mandati corretti dopo) diventa 'non in carica'."""
+    fuori = [i for i, m in enumerate(membri) if m["mandati"] != [[INIZIO_LEG, None]]]
+    for v in votazioni:
+        s = v.get("v", "")
+        cambi = [i for i in fuori if i < len(s) and s[i] == "-" and not in_carica(membri[i]["mandati"], v["d"])]
+        if cambi:
+            lista = list(s)
+            for i in cambi:
+                lista[i] = "."
+            v["v"] = "".join(lista).rstrip(".")
+
+
 # ---------- anagrafe ----------
 def aggiorna_anagrafe(ramo, cart, roster, ades, gruppi_raw, capi, regole):
     prec = leggi_json(os.path.join(cart, "membri.json"), {"membri": [], "gruppi": {}})
@@ -150,9 +163,9 @@ def aggiorna_anagrafe(ramo, cart, roster, ades, gruppi_raw, capi, regole):
         capi_m.setdefault(c["id"], []).append((gid_di(c["g"]), c["da"], c["a"]))
     membri = [None] * prossimo
     for uri, i in indice_uri.items():
-        base = roster.get(uri) or vecchi.get(uri)
-        if base is None:
-            base = {"id": uri, "nome": "", "cognome": nome_locale(uri), "sesso": "", "mandati": []}
+        base = roster.get(uri)
+        if base is None:  # non più nell'anagrafe ufficiale: resta per l'indice, ma senza mandati
+            base = dict(vecchi.get(uri) or {"id": uri, "nome": "", "cognome": nome_locale(uri), "sesso": ""}, mandati=[])
         m = {
             "i": i, "id": uri, "nome": base.get("nome", ""), "cognome": base.get("cognome", ""),
             "sesso": base.get("sesso", ""), "tipo": base.get("tipo", ""),
@@ -189,7 +202,8 @@ def aggiorna_ramo(ramo, dati_dir, scadenza, rifai, endpoint_url, solo_calcoli, r
     stato = leggi_json(os.path.join(cart, "stato.json"), {"fatti": {}})
     if stato.get("versione") != VERSIONE_DATI:  # formato cambiato: si riscarica tutto
         stato = {"versione": VERSIONE_DATI, "fatti": {}}
-    ep = Endpoint(endpoint_url or mod.ENDPOINT, ramo, pausa=pausa, log=lambda *a: log(*a))
+    ep = Endpoint(endpoint_url or mod.ENDPOINT, ramo, pausa=pausa, log=lambda *a: log(*a),
+                  max_url=getattr(mod, "MAX_URL", None))
     rimaste = 0
 
     if not solo_calcoli:
@@ -268,6 +282,7 @@ def aggiorna_ramo(ramo, dati_dir, scadenza, rifai, endpoint_url, solo_calcoli, r
     mesi = sorted(glob.glob(os.path.join(cart, "votazioni", "*.json")))
     per_file = [(p, leggi_json(p)["votazioni"]) for p in mesi]
     tutte = [v for _, vs in per_file for v in vs]
+    normalizza_assenti(tutte, membri)
     oggi = dt.date.today().isoformat()
     ris = Calcolo(membri, gruppi, tutte, oggi, (governo or {}).get("dal")).esegui()
     for p, vs in per_file:

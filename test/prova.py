@@ -94,6 +94,7 @@ def main():
 
         # --- Senato
         S = leggi(os.path.join(dati, "senato", "membri.json"))
+        assert not any(m["cognome"] == "Deputato" and m["mandati"] for m in S["membri"]), "i mandati alla Camera non sono senatori"
         segre = next(m for m in S["membri"] if m["cognome"] == "Segre")
         assert segre["mandati"] and segre["mandati"][0][0] == "2022-10-13", segre
         assert segre["adesioni"] and segre["adesioni"][0][0] == "g49"

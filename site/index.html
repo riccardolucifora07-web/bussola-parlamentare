@@ -1580,7 +1580,7 @@ function renderParlFilters() {
 }
 function renderParlTable() {
   if (!D.ok) return;
-  let righe = ramiAttivi().filter(r => pf.ramo === "tutti" || pf.ramo === r).flatMap(r => D[r].membri);
+  let righe = ramiAttivi().filter(r => pf.ramo === "tutti" || pf.ramo === r).flatMap(r => D[r].membri).filter(m => m.mandati.length || (m.st && m.st.tot));
   if (pf.attivi) righe = righe.filter(m => m.attivo);
   if (pf.chiave) righe = righe.filter(m => m.g && D[m.ramo].G[m.g] && D[m.ramo].G[m.g].chiave === pf.chiave);
   if (pf.q) righe = righe.filter(m => pf.q.split(/\s+/).every(w => m.q.includes(w)));

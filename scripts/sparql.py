@@ -29,6 +29,11 @@ PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 LIMITE_RIGHE = 10000      # righe massime per risposta (Camera e Senato)
 LIMITE_ORDINATE = 10000   # OFFSET + LIMIT massimi con ORDER BY
 
+def prefissi_per(q):
+    """Solo le righe PREFIX che la query usa davvero (accorcia le richieste)."""
+    return "".join(r + "\n" for r in PREFISSI.strip().split("\n") if f"{r.split()[1]}" in q)
+
+
 INTERI = ("integer", "int", "long", "short", "nonNegativeInteger", "positiveInteger",
           "unsignedInt", "unsignedLong", "byte")
 
@@ -65,8 +70,9 @@ def converti(b):
 
 
 class Endpoint:
-    def __init__(self, url, nome, pausa=0.35, timeout=180, tentativi=5, pagina=5000, log=None):
+    def __init__(self, url, nome, pausa=0.35, timeout=180, tentativi=5, pagina=5000, log=None, max_url=None):
         self.url = url
+        self.max_url = max_url  # il Senato rifiuta (403) le richieste più lunghe di circa 2.000 caratteri
         self.nome = nome
         self.pausa = pausa
         self.timeout = timeout
@@ -75,12 +81,15 @@ class Endpoint:
         self.richieste = 0
         self.log = log or (lambda *a: print(*a, file=sys.stderr, flush=True))
 
-    def _get(self, query):
-        params = urllib.parse.urlencode({
-            "query": query,
+    def parametri(self, q):
+        return urllib.parse.urlencode({
+            "query": prefissi_per(q) + q,
             "format": "application/sparql-results+json",
             "timeout": str(self.timeout * 1000),
         })
+
+    def _get(self, query):
+        params = self.parametri(query)
         req = urllib.request.Request(
             self.url + ("&" if "?" in self.url else "?") + params,
             headers={"Accept": "application/sparql-results+json", "User-Agent": UA},
@@ -93,7 +102,6 @@ class Endpoint:
         return json.loads(corpo.decode("utf-8"))
 
     def query(self, q):
-        q = PREFISSI + q
         attesa = 3
         ultimo = None
         for n in range(1, self.tentativi + 1):
@@ -155,8 +163,11 @@ class Endpoint:
         i = 0
         while i < len(uris):
             parte = uris[i:i + lotto]
-            valori = separatore.join(f"<{u}>" for u in parte)
-            righe = self.query(modello.replace("%VALORI%", valori))
+            q = modello.replace("%VALORI%", separatore.join(f"<{u}>" for u in parte))
+            while self.max_url and len(parte) > 1 and len(self.parametri(q)) > self.max_url:
+                parte = parte[:-1]  # richiesta troppo lunga per l'endpoint: un elemento in meno
+                q = modello.replace("%VALORI%", separatore.join(f"<{u}>" for u in parte))
+            righe = self.query(q)
             n = len(righe)
             tagliata = n >= LIMITE_RIGHE or (n >= 1000 and n % 1000 == 0)
             if tagliata and len(parte) > 1:

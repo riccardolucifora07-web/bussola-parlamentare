@@ -180,7 +180,7 @@ def risposta(nome, q):
     elif nome == "camera_lista":
         righe = [{"v": U(v["uri"])} for v in D_["cvot"] if v["d"] == giorno]
     elif nome == "senato_lista":
-        sed = seduta.rsplit("/", 1)[1]
+        sed = seduta.rsplit("/", 1)[-1]
         righe = [{"v": U(v["uri"])} for v in D_["svot"] if v["sed"] == sed]
     elif nome == "camera_votazioni":
         if "VALUES" not in q:
@@ -206,6 +206,9 @@ def risposta(nome, q):
                 continue
             righe.append({"s": U(s["uri"]), "nome": L(s["nome"]), "cognome": L(s["cognome"]),
                           "m": U(s["uri"] + "/m19"), "inizio": D(s["m"][0]), "tipo": L("elettivo")})
+        # ex senatore oggi deputato: la banca dati del Senato elenca il suo mandato alla Camera
+        righe.append({"s": U("http://dati.senato.it/senatore/99999"), "nome": L("Paolo"), "cognome": L("Deputato"),
+                      "m": U("http://dati.senato.it/mandato/C_19_99999_1"), "inizio": D("2022-10-13")})
     elif nome == "senato_senatore_extra":
         uri = re.search(r"<(http://dati\.senato\.it/senatore/\d+)>", q).group(1)
         s = next(x for x in D_["sen"] if x["uri"] == uri)
@@ -229,7 +232,7 @@ def risposta(nome, q):
     elif nome == "senato_votazioni":
         if "VALUES" in q or "POST" in q:
             raise KeyError("il Senato non conosce VALUES")
-        sed = seduta.rsplit("/", 1)[1]
+        sed = seduta.rsplit("/", 1)[-1]
         for v in [v for v in D_["svot"] if v["sed"] == sed and f"<{v['uri']}>" in q]:
             s = v["uri"]
             props = [(RDF + "type", U(OSR + "Votazione")), (OSR + "numero", I(v["nv"])), (RDFS + "label", L(v["label"])),
@@ -243,7 +246,7 @@ def risposta(nome, q):
                 props += [(OSR + lista, U(x)) for x in sens]
             righe += [{"v": U(s), "p": U(p), "o": o} for p, o in props]
     elif nome == "senato_ddl":
-        sed = seduta.rsplit("/", 1)[1]
+        sed = seduta.rsplit("/", 1)[-1]
         for v in [v for v in D_["svot"] if v["sed"] == sed and not v["legale"]]:
             righe.append({"v": U(v["uri"]), "ddl": U("http://dati.senato.it/ddl/1026"), "breve": L("Legge annuale sulle PMI")})
     else:
@@ -271,6 +274,10 @@ class Gestore(BaseHTTPRequestHandler):
         qs = urllib.parse.parse_qs(url.query)
         q = qs.get("query", [""])[0]
         Gestore.contatore["n"] += 1
+        if url.path.startswith("/senato") and len(url.query) > 2000:
+            self.send_response(403)  # come il Senato vero con le richieste troppo lunghe
+            self.end_headers()
+            return
         if url.path.startswith("/senato") and "Mozilla" not in self.headers.get("User-Agent", ""):
             self.send_response(403)
             self.end_headers()
