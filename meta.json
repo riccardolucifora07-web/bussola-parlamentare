@@ -1,0 +1,135 @@
+{
+ "rami": {
+  "camera": {
+   "votazioni": 20897,
+   "ultima": "2026-11-26",
+   "prima": "2022-10-25",
+   "membri_in_carica": 398,
+   "membri_totali": 417,
+   "da_scaricare": 0,
+   "richieste": 54,
+   "controllo_totali": 1,
+   "aggiornato": "2026-11-28T04:21:38+00:00",
+   "avvisi": []
+  },
+  "senato": {
+   "votazioni": 8551,
+   "ultima": "2026-11-26",
+   "prima": "2022-10-26",
+   "membri_in_carica": 205,
+   "membri_totali": 254,
+   "da_scaricare": 0,
+   "richieste": 24,
+   "controllo_totali": 0,
+   "aggiornato": "2026-11-28T04:22:20+00:00",
+   "avvisi": []
+  }
+ },
+ "aggiornato": "2026-11-28T04:22:20+00:00",
+ "categorie": {
+  "finale": "Voto finale",
+  "fiducia": "Fiducia",
+  "emendamento": "Emendamento",
+  "articolo": "Articolo",
+  "odg": "Ordine del giorno",
+  "mozione": "Mozione o risoluzione",
+  "pregiudiziale": "Pregiudiziale o sospensiva",
+  "numero_legale": "Verifica del numero legale",
+  "altro": "Altro"
+ },
+ "fonti": {
+  "camera": {
+   "nome": "Camera dei deputati, dati.camera.it",
+   "url": "https://dati.camera.it/",
+   "licenza": "CC BY-SA 4.0"
+  },
+  "senato": {
+   "nome": "Senato della Repubblica, dati.senato.it",
+   "url": "https://dati.senato.it/",
+   "licenza": "CC BY 3.0"
+  }
+ },
+ "governo": {
+  "nome": "Governo Meloni",
+  "breve": "Meloni",
+  "dal": "2022-10-21",
+  "al": null
+ },
+ "temi": [
+  {
+   "codice": "conti",
+   "nome": "Bilancio e conti pubblici"
+  },
+  {
+   "codice": "fisco",
+   "nome": "Fisco e tasse"
+  },
+  {
+   "codice": "lavoro",
+   "nome": "Lavoro e pensioni"
+  },
+  {
+   "codice": "sanita",
+   "nome": "Sanità"
+  },
+  {
+   "codice": "scuola",
+   "nome": "Scuola, università e ricerca"
+  },
+  {
+   "codice": "giustizia",
+   "nome": "Giustizia e sicurezza"
+  },
+  {
+   "codice": "immigrazione",
+   "nome": "Immigrazione e cittadinanza"
+  },
+  {
+   "codice": "energia",
+   "nome": "Energia"
+  },
+  {
+   "codice": "ambiente",
+   "nome": "Ambiente e territorio"
+  },
+  {
+   "codice": "infrastrutture",
+   "nome": "Infrastrutture e trasporti"
+  },
+  {
+   "codice": "imprese",
+   "nome": "Imprese, economia e turismo"
+  },
+  {
+   "codice": "agricoltura",
+   "nome": "Agricoltura e alimentazione"
+  },
+  {
+   "codice": "esteri",
+   "nome": "Esteri, Europa e difesa"
+  },
+  {
+   "codice": "istituzioni",
+   "nome": "Istituzioni e riforme"
+  },
+  {
+   "codice": "diritti",
+   "nome": "Diritti, famiglia e sociale"
+  },
+  {
+   "codice": "cultura",
+   "nome": "Cultura, sport e informazione"
+  },
+  {
+   "codice": "digitale",
+   "nome": "Digitale e innovazione"
+  }
+ ],
+ "leggi": {
+  "totale": 4882,
+  "fasi": 5373,
+  "voti_senato_collegati": 7938,
+  "aggiornato": "2026-11-28T04:20:17+00:00",
+  "richieste": 18
+ }
+}
